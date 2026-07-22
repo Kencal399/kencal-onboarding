@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kencal — Policies</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root { --navy:#1A2744; --navy-light:#24345a; --gold:#C8A84B; --gold-light:#ddc47f; --paper:#F7F5F1; --ink:#22242b; --ink-soft:#5b5f6b; --line:#dcd9d2; --warn:#b23b3b; --radius:10px; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:'Segoe UI',-apple-system,sans-serif; }
+  .topbar { background:var(--navy); color:#fff; padding:18px 22px; }
+  .topbar .brand { font-weight:700; font-size:15px; letter-spacing:0.02em; }
+  .topbar .brand span { color:var(--gold-light); }
+  .topbar .sub { font-size:12.5px; color:#cfd6e6; margin-top:2px; }
+  .wrap { max-width:640px; margin:0 auto; padding:20px 18px 60px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+  .card h2 { margin:0 0 4px; font-size:15px; color:var(--navy); }
+  .card .sub { margin:0 0 14px; font-size:12.5px; color:var(--ink-soft); }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+  .field input, .field select { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; font-family:inherit; background:#fff; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .policy-scroll { max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:16px; background:#fdfcfa; font-size:13px; line-height:1.6; margin-bottom:14px; }
+  .policy-scroll h3 { font-size:13.5px; color:var(--navy); margin:14px 0 6px; }
+  .policy-scroll h3:first-child { margin-top:0; }
+  .policy-scroll ul { margin:6px 0; padding-left:20px; }
+  .policy-scroll li { margin-bottom:4px; }
+  .check-opt { display:flex; align-items:flex-start; gap:10px; font-size:13.5px; padding:12px; border:1px solid var(--line); border-radius:8px; }
+  .check-opt input { margin-top:2px; }
+  .radio-row { display:flex; gap:16px; margin:8px 0 14px; }
+  .radio-opt { display:flex; align-items:center; gap:6px; font-size:14px; }
+  .lang-gate { text-align:center; padding:30px 20px; }
+  .lang-gate h1 { font-size:18px; color:var(--navy); margin-bottom:8px; }
+  .gate-btn { display:block; width:100%; max-width:320px; margin:0 auto 10px; padding:14px; border:2px solid var(--navy); border-radius:10px; background:#fff; color:var(--navy); font-size:15px; font-weight:600; cursor:pointer; }
+  .gate-btn:hover { background:var(--navy); color:#fff; }
+  .btn { display:block; width:100%; background:var(--navy); color:#fff; border:none; border-radius:8px; padding:13px; font-size:15px; font-weight:600; cursor:pointer; margin-top:6px; }
+  .btn:hover { background:var(--navy-light); }
+  .result-ok { background:#eef7f1; border:1px solid #bfe3cc; color:#2e7d4f; padding:12px 14px; border-radius:8px; font-size:14px; font-weight:600; margin-top:14px; }
+  .result-warn { background:#fbeeee; border:1px solid #ecc5c5; color:#b23b3b; padding:12px 14px; border-radius:8px; font-size:14px; font-weight:600; margin-top:14px; }
+  .sig-box { border:1px solid var(--line); border-radius:8px; padding:14px; background:#fffdf8; }
+  #mainCards { display:none; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">KENCAL <span>ONBOARDING</span></div>
+  <div class="sub" id="topbarSub">Policies</div>
+</div>
+
+<div class="wrap">
+
+  <div class="card" id="loginGateCard">
+    <div class="lang-gate">
+      <h1>Staff Login</h1>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 10px;"><label>Email</label><input type="email" id="login_email"></div>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 16px;"><label>Password</label><input type="password" id="login_password"></div>
+      <button class="gate-btn" id="loginBtn">Log in</button>
+      <p id="loginStatus" class="sub" style="margin-top:10px"></p>
+    </div>
+  </div>
+
+  <div class="card" id="candidateGateCard" style="display:none">
+    <h2>Select a candidate</h2>
+    <select id="candidateSelect" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
+      <option value="">Loading candidates…</option>
+    </select>
+  </div>
+
+  <div class="card" id="langGateCard" style="display:none">
+    <div class="lang-gate">
+      <h1>Do you understand English?</h1>
+      <button class="gate-btn" data-lang="en">Yes — continue in English</button>
+      <hr style="border:none;border-top:1px solid var(--line);margin:20px 0">
+      <h1>¿Entiende usted inglés?</h1>
+      <button class="gate-btn" data-lang="es">No — continuar en español</button>
+    </div>
+  </div>
+
+  <div id="mainCards"></div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://guxemrdukpiqpawskapv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6UwA2vBI-Bw-2Kndb198hg_LkQ0vpJF';
+let supabaseClient;
+try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
+catch (err) { document.getElementById('loginStatus').textContent = 'Setup error: ' + (err.message || String(err)); }
+
+let selectedCandidateId = null;
+let lang = 'en';
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('login_email').value.trim();
+  const password = document.getElementById('login_password').value;
+  const loginStatus = document.getElementById('loginStatus');
+  loginStatus.textContent = 'Logging in…';
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) { loginStatus.textContent = 'Login failed: ' + error.message; return; }
+    loginStatus.textContent = '';
+    document.getElementById('loginGateCard').style.display = 'none';
+    document.getElementById('candidateGateCard').style.display = 'block';
+    await loadCandidates();
+  } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
+});
+
+async function loadCandidates() {
+  const select = document.getElementById('candidateSelect');
+  const { data, error } = await supabaseClient.from('candidates').select('id, first_name, last_name, status, created_at').order('created_at', { ascending: false }).limit(50);
+  if (error) { select.innerHTML = `<option value="">Error: ${error.message}</option>`; return; }
+  if (!data || data.length === 0) { select.innerHTML = `<option value="">No candidates found</option>`; return; }
+  select.innerHTML = `<option value="">Select a candidate…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} — ${c.status}</option>`).join('');
+}
+
+document.getElementById('candidateSelect').addEventListener('change', (e) => {
+  selectedCandidateId = e.target.value;
+  if (!selectedCandidateId) return;
+  document.getElementById('candidateGateCard').style.display = 'none';
+  document.getElementById('langGateCard').style.display = 'block';
+});
+
+document.querySelectorAll('.gate-btn[data-lang]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    lang = btn.dataset.lang;
+    document.getElementById('langGateCard').style.display = 'none';
+    document.getElementById('mainCards').style.display = 'block';
+    buildForm();
+  });
+});
+
+// ============================================================================
+// Content — Work Rules (full), Sexual Harassment (condensed)
+// ============================================================================
+const T = {
+  en: {
+    topbarSub: 'Policies',
+    workRulesTitle: 'Company Work Rules',
+    workRulesSub: 'Please read the rules below in full before signing.',
+    majorHeading: 'Major Rule Violations',
+    majorIntro: 'Willful or deliberate violations of this severity may result in immediate discharge without warning:',
+    majorList: [
+      'Willful, repeated violation of safety rules',
+      'Falsifying company records (application, SSN, alien status, work hours, etc.)',
+      'Refusal to perform work properly assigned by a Supervisor',
+      "Any act endangering the safety of employees, tenants, or customers",
+      "Punching another employee's time card, or letting someone punch yours",
+      'Switching job duties/locations without Supervisor permission',
+      'Deliberately damaging or misusing company/tenant property',
+      'Bringing children or unauthorized persons to a job location',
+      'Leaving a job location during work hours without permission',
+      'Removing or duplicating company/tenant keys without permission',
+      'Gambling on company or tenant premises',
+      'Deliberately delaying or restricting production',
+      'Fighting on company premises',
+      'Bringing or using liquor/narcotics on the job, or reporting under the influence',
+      'Carrying firearms or weapons on the job',
+      'Failing to return to work after vacation/leave/recall without cause',
+      'Unauthorized use of a company vehicle',
+      'Disclosing confidential company information',
+      'Unauthorized use or removal of tenant property',
+      'Soliciting or selling on premises without written permission',
+      'Profane, abusive, or discriminatory language, or obscene conduct',
+      'Unauthorized personal work on company time',
+      'Assault or threats against management',
+      'Removing items from the building without permission',
+      'As a route person, failing to report to your assigned location',
+      'Sleeping on the job',
+      'Removing company supplies/equipment without permission'
+    ],
+    minorHeading: 'Minor Rule Violations',
+    minorIntro: 'Less serious, but repeated violations will be recorded and can lead to dismissal:',
+    minorList: [
+      'Unsatisfactory work performance',
+      'Failure to notify Kencal within 2 hours of the start of an absence',
+      'Failure to observe scheduled hours (start, quit, breaks)',
+      "Interfering with another employee's work through talking or distraction",
+      'Habitual tardiness or excessive absenteeism',
+      'Loafing or misuse of time during work hours',
+      'Leaving your work location without notifying your Supervisor',
+      'Distributing materials on premises without permission',
+      'Defacing bulletin boards or notices',
+      'Failure to punch/record time as instructed',
+      'Minor safety violations, including improper footwear',
+      'Failure to wear your I.D. card while working',
+      'Failure to notify Kencal of changes in marital status, address, or phone',
+      'Entering the workplace off-hours or lingering after your shift'
+    ],
+    workRulesAck: 'I have read and understand the above rules and regulations and agree to abide by them.',
+
+    harassmentTitle: 'Sexual Harassment Policy (Summary)',
+    harassmentSub: 'Condensed from the full policy. Ask Yazmin or HR for the complete document at any time.',
+    harassmentBody: `
+      <h3>Our Commitment</h3>
+      <p>Kencal Maintenance is committed to a workplace free from sexual harassment. Harassment is against the law, and every employee has the legal right to work free from it — regardless of immigration status. This applies to all employees, applicants, interns, and contractors.</p>
+      <h3>What Counts as Sexual Harassment</h3>
+      <p>Unwelcome conduct of a sexual nature — or conduct directed at someone because of their sex — that interferes with work, creates a hostile environment, or is made a condition of employment. Examples include unwanted touching, sexual comments or jokes, requests for sexual favors tied to job benefits, sexual images or displays, and hostile actions based on sex, sexual orientation, or gender identity. Even a single incident can be a violation.</p>
+      <h3>No Retaliation</h3>
+      <p>Kencal will not tolerate retaliation against anyone who reports harassment, provides information, or assists in an investigation — in good faith. Retaliation is itself a serious violation subject to discipline.</p>
+      <h3>How to Report</h3>
+      <p>Report to your Supervisor, Manager, or Kencal's HR Department. Reports can be verbal or written. Kencal's HR contact: (914) 761-5900, rstorey@kencalmaintenance.com, 399 Knollwood Road, White Plains, NY 10603. All complaints will be investigated promptly and kept confidential to the extent possible.</p>
+      <h3>Your Outside Legal Options</h3>
+      <p>Beyond Kencal's internal process, you may also file a complaint with the NYS Division of Human Rights (within 1 year), sue directly in state court (within 3 years), or file with the federal EEOC (within 300 days). These are free to file and do not require a lawyer.</p>
+    `,
+    harassmentAck: "I acknowledge receipt of Kencal's Sexual Harassment Policy summary and agree to read the complete policy and abide by it.",
+
+    signTitle: 'Signature',
+    label_sign_name: 'Type your full legal name to sign',
+    sig_note: 'This records your signature electronically. The official date is added once your hire is confirmed.',
+    submit: 'Sign & Save',
+    err_no_signature: 'Please type a name to sign.',
+    err_no_ack: 'Please check both acknowledgment boxes before signing.',
+    success: (name) => `✓ Signed by ${name} and saved.`
+  },
+  es: {
+    topbarSub: 'Políticas y Depósito Directo',
+    workRulesTitle: 'Reglas de Trabajo de la Compañía',
+    workRulesSub: 'Por favor lea las reglas a continuación en su totalidad antes de firmar.',
+    majorHeading: 'Violaciones Graves de las Reglas',
+    majorIntro: 'Las violaciones deliberadas de esta gravedad pueden resultar en despido inmediato sin previo aviso:',
+    majorList: [
+      'Violación deliberada y repetida de las reglas de seguridad',
+      'Falsificar registros de la compañía (solicitud, SSN, estatus migratorio, horas de trabajo, etc.)',
+      'Negarse a realizar el trabajo asignado por un Supervisor',
+      'Cualquier acto que ponga en peligro la seguridad de empleados, inquilinos o clientes',
+      'Marcar la tarjeta de tiempo de otro empleado, o permitir que otro marque la suya',
+      'Cambiar tareas o ubicaciones de trabajo sin permiso del Supervisor',
+      'Dañar o hacer mal uso deliberado de la propiedad de la compañía o del inquilino',
+      'Traer niños o personas no autorizadas a un lugar de trabajo',
+      'Dejar el lugar de trabajo durante horas laborales sin permiso',
+      'Retirar o duplicar llaves de la compañía o del inquilino sin permiso',
+      'Apostar en las instalaciones de la compañía o del inquilino',
+      'Retrasar o restringir deliberadamente la producción',
+      'Pelear en las instalaciones de la compañía',
+      'Traer o consumir licor/narcóticos en el trabajo, o presentarse bajo su influencia',
+      'Portar armas de fuego u otras armas en el trabajo',
+      'No regresar al trabajo después de vacaciones/permiso sin causa justificada',
+      'Uso no autorizado de un vehículo de la compañía',
+      'Divulgar información confidencial de la compañía',
+      'Uso no autorizado o remoción de propiedad del inquilino',
+      'Solicitar o vender en las instalaciones sin permiso escrito',
+      'Lenguaje profano, abusivo o discriminatorio, o conducta obscena',
+      'Trabajo personal no autorizado en horario de la compañía',
+      'Agresión o amenazas contra la gerencia',
+      'Retirar artículos del edificio sin permiso',
+      'Como persona de ruta, no reportarse a su ubicación asignada',
+      'Dormir en el trabajo',
+      'Retirar suministros o equipo de la compañía sin permiso'
+    ],
+    minorHeading: 'Violaciones Menores de las Reglas',
+    minorIntro: 'Menos graves, pero las violaciones repetidas se registrarán y pueden llevar al despido:',
+    minorList: [
+      'Desempeño laboral insatisfactorio',
+      'No notificar a Kencal dentro de las 2 horas del inicio de una ausencia',
+      'No respetar el horario programado (entrada, salida, descansos)',
+      'Interferir con el trabajo de otro empleado hablando o distrayendo',
+      'Tardanza habitual o ausentismo excesivo',
+      'Holgazanear o mal uso del tiempo durante horas laborales',
+      'Dejar su lugar de trabajo sin notificar a su Supervisor',
+      'Distribuir materiales en las instalaciones sin permiso',
+      'Dañar carteleras o avisos',
+      'No marcar/registrar su tiempo como se le indicó',
+      'Violaciones menores de seguridad, incluyendo calzado inapropiado',
+      'No portar su tarjeta de identificación mientras trabaja',
+      'No notificar a Kencal de cambios en estado civil, dirección o teléfono',
+      'Entrar al lugar de trabajo fuera de horario o quedarse después de su turno'
+    ],
+    workRulesAck: 'He leído y entiendo las reglas y regulaciones anteriores y acepto cumplirlas.',
+
+    harassmentTitle: 'Política de Acoso Sexual (Resumen)',
+    harassmentSub: 'Condensado de la política completa. Pida a Yazmin o a Recursos Humanos el documento completo en cualquier momento.',
+    harassmentBody: `
+      <h3>Nuestro Compromiso</h3>
+      <p>Kencal Maintenance está comprometida a mantener un lugar de trabajo libre de acoso sexual. El acoso es ilegal, y todo empleado tiene el derecho legal de trabajar libre de él, sin importar su estatus migratorio. Esto aplica a todos los empleados, solicitantes, pasantes y contratistas.</p>
+      <h3>Qué Constituye Acoso Sexual</h3>
+      <p>Conducta no deseada de naturaleza sexual, o conducta dirigida a alguien por su sexo, que interfiere con el trabajo, crea un ambiente hostil, o se convierte en condición de empleo. Los ejemplos incluyen tocamientos no deseados, comentarios o bromas sexuales, solicitudes de favores sexuales a cambio de beneficios laborales, imágenes o exhibiciones sexuales, y acciones hostiles basadas en el sexo, orientación sexual o identidad de género. Incluso un solo incidente puede constituir una violación.</p>
+      <h3>Sin Represalias</h3>
+      <p>Kencal no tolerará represalias contra nadie que reporte acoso, proporcione información, o ayude en una investigación de buena fe. Las represalias son en sí mismas una violación grave sujeta a disciplina.</p>
+      <h3>Cómo Reportar</h3>
+      <p>Reporte a su Supervisor, Gerente, o al Departamento de Recursos Humanos de Kencal. Los reportes pueden ser verbales o escritos. Contacto de Recursos Humanos de Kencal: (914) 761-5900, rstorey@kencalmaintenance.com, 399 Knollwood Road, White Plains, NY 10603. Todas las quejas serán investigadas con prontitud y mantenidas confidenciales en la medida de lo posible.</p>
+      <h3>Sus Opciones Legales Externas</h3>
+      <p>Además del proceso interno de Kencal, también puede presentar una queja ante la División de Derechos Humanos del Estado de NY (dentro de 1 año), demandar directamente en la corte estatal (dentro de 3 años), o presentar una queja ante la EEOC federal (dentro de 300 días). Presentar estas quejas es gratis y no requiere abogado.</p>
+    `,
+    harassmentAck: 'Reconozco haber recibido el resumen de la Política de Acoso Sexual de Kencal y acepto leer la política completa y cumplirla.',
+
+    signTitle: 'Firma',
+    label_sign_name: 'Escriba su nombre legal completo para firmar',
+    sig_note: 'Esto registra su firma electrónicamente. La fecha oficial se agrega una vez confirmada su contratación.',
+    submit: 'Firmar y Guardar',
+    err_no_signature: 'Por favor escriba un nombre para firmar.',
+    err_no_ack: 'Por favor marque ambas casillas de reconocimiento antes de firmar.',
+    success: (name) => `✓ Firmado por ${name} y guardado.`
+  }
+};
+
+function buildForm() {
+  const t = T[lang];
+  document.getElementById('topbarSub').textContent = t.topbarSub;
+
+  const majorItems = t.majorList.map(i => `<li>${i}</li>`).join('');
+  const minorItems = t.minorList.map(i => `<li>${i}</li>`).join('');
+
+  document.getElementById('mainCards').innerHTML = `
+    <div class="card">
+      <h2>${t.workRulesTitle}</h2>
+      <p class="sub">${t.workRulesSub}</p>
+      <div class="policy-scroll">
+        <h3>${t.majorHeading}</h3>
+        <p>${t.majorIntro}</p>
+        <ul>${majorItems}</ul>
+        <h3>${t.minorHeading}</h3>
+        <p>${t.minorIntro}</p>
+        <ul>${minorItems}</ul>
+      </div>
+      <label class="check-opt"><input type="checkbox" id="ack_work_rules"> ${t.workRulesAck}</label>
+    </div>
+
+    <div class="card">
+      <h2>${t.harassmentTitle}</h2>
+      <p class="sub">${t.harassmentSub}</p>
+      <div class="policy-scroll">${t.harassmentBody}</div>
+      <label class="check-opt"><input type="checkbox" id="ack_harassment"> ${t.harassmentAck}</label>
+    </div>
+
+    <div class="card">
+      <h2>${t.signTitle}</h2>
+      <div class="sig-box">
+        <div class="field" style="margin-bottom:8px"><label>${t.label_sign_name}</label><input type="text" id="signature_name"></div>
+        <p class="sub" style="margin:0">${t.sig_note}</p>
+      </div>
+      <button class="btn" id="submitBtn">${t.submit}</button>
+      <div id="resultArea"></div>
+    </div>
+  `;
+
+  document.getElementById('submitBtn').addEventListener('click', async () => {
+    const resultArea = document.getElementById('resultArea');
+    const val = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+    const name = val('signature_name');
+
+    if (!name) { resultArea.innerHTML = `<div class="result-warn">${t.err_no_signature}</div>`; return; }
+    if (!document.getElementById('ack_work_rules').checked || !document.getElementById('ack_harassment').checked) {
+      resultArea.innerHTML = `<div class="result-warn">${t.err_no_ack}</div>`;
+      return;
+    }
+    if (!selectedCandidateId) { resultArea.innerHTML = `<div class="result-warn">No candidate selected.</div>`; return; }
+
+    resultArea.innerHTML = '<div class="sub">Saving…</div>';
+    try {
+      const nowIso = new Date().toISOString();
+
+      const { error: wrErr } = await supabaseClient.from('policy_acknowledgments').insert({
+        candidate_id: selectedCandidateId, policy_name: 'Company Work Rules', policy_version: '2026',
+        signature_data: name, signed_at: nowIso
+      });
+      if (wrErr) throw new Error('Work Rules: ' + wrErr.message);
+
+      const { error: shErr } = await supabaseClient.from('policy_acknowledgments').insert({
+        candidate_id: selectedCandidateId, policy_name: 'Sexual Harassment Policy (Summary)', policy_version: '2026',
+        signature_data: name, signed_at: nowIso
+      });
+      if (shErr) throw new Error('Sexual Harassment Policy: ' + shErr.message);
+
+      resultArea.innerHTML = `<div class="result-ok">${t.success(name)}</div>`;
+    } catch (err) {
+      resultArea.innerHTML = `<div class="result-warn">${err.message || String(err)}</div>`;
+    }
+  });
+}
+</script>
+
+</body>
+</html>
