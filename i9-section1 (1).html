@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kencal — I-9 Section 1</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --navy: #1A2744; --navy-light: #24345a; --gold: #C8A84B; --gold-light: #ddc47f;
+    --paper: #F7F5F1; --ink: #22242b; --ink-soft: #5b5f6b; --line: #dcd9d2; --warn: #b23b3b;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:'Segoe UI',-apple-system,sans-serif; }
+  .topbar { background:var(--navy); color:#fff; padding:18px 22px; }
+  .topbar .brand { font-weight:700; font-size:15px; letter-spacing:0.02em; }
+  .topbar .brand span { color:var(--gold-light); }
+  .topbar .sub { font-size:12.5px; color:#cfd6e6; margin-top:2px; }
+  .wrap { max-width:640px; margin:0 auto; padding:20px 18px 60px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+  .card h2 { margin:0 0 4px; font-size:15px; color:var(--navy); }
+  .card .sub { margin:0 0 14px; font-size:12.5px; color:var(--ink-soft); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+  .field input, .field select, .field textarea {
+    width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; font-family:inherit; background:#fff;
+  }
+  .field input:focus, .field select:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(200,168,75,0.18); }
+  .field input.prefilled { background:#fbf7ea; border-color:var(--gold); }
+  .prefilled-tag { font-size:10.5px; color:#8a6a1f; font-weight:600; margin-left:6px; }
+  .radio-card { border:1px solid var(--line); border-radius:8px; padding:12px; margin-bottom:8px; cursor:pointer; }
+  .radio-card:hover { border-color:var(--gold); }
+  .radio-card label { display:flex; align-items:flex-start; gap:10px; font-size:13.5px; cursor:pointer; }
+  .radio-card input { margin-top:2px; }
+  .conditional-fields { margin-top:10px; padding-left:24px; border-left:2px solid var(--gold); display:none; }
+  .btn { display:block; width:100%; background:var(--navy); color:#fff; border:none; border-radius:8px; padding:13px; font-size:15px; font-weight:600; cursor:pointer; margin-top:6px; }
+  .btn:hover { background:var(--navy-light); }
+  .result-ok { background:#eef7f1; border:1px solid #bfe3cc; color:#2e7d4f; padding:12px 14px; border-radius:8px; font-size:14px; font-weight:600; margin-top:14px; }
+  .result-warn { background:#fbeeee; border:1px solid #ecc5c5; color:#b23b3b; padding:12px 14px; border-radius:8px; font-size:14px; font-weight:600; margin-top:14px; }
+  .lang-gate { text-align:center; padding:30px 20px; }
+  .lang-gate h1 { font-size:18px; color:var(--navy); margin-bottom:8px; }
+  .lang-gate p { color:var(--ink-soft); font-size:14px; margin-bottom:20px; }
+  .gate-btn { display:block; width:100%; max-width:320px; margin:0 auto 10px; padding:14px; border:2px solid var(--navy); border-radius:10px; background:#fff; color:var(--navy); font-size:15px; font-weight:600; cursor:pointer; }
+  .gate-btn:hover { background:var(--navy); color:#fff; }
+  #formCard { display:none; }
+  .sig-box { border:1px solid var(--line); border-radius:8px; padding:14px; background:#fffdf8; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">KENCAL <span>ONBOARDING</span></div>
+  <div class="sub">I-9 Section 1 — Employee Information and Attestation</div>
+</div>
+
+<div class="wrap">
+
+  <div class="card" id="loginGateCard">
+    <div class="lang-gate">
+      <h1>Staff Login</h1>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 10px;">
+        <label>Email</label><input type="email" id="login_email">
+      </div>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 16px;">
+        <label>Password</label><input type="password" id="login_password">
+      </div>
+      <button class="gate-btn" id="loginBtn">Log in</button>
+      <p id="loginStatus" class="sub" style="margin-top:10px"></p>
+    </div>
+  </div>
+
+  <div class="card" id="candidateGateCard" style="display:none">
+    <h2>Select a candidate</h2>
+    <p class="sub">Choose who this I-9 is for. Their name, address, phone, and SSN will fill in automatically from their application.</p>
+    <select id="candidateSelect" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
+      <option value="">Loading candidates…</option>
+    </select>
+  </div>
+
+  <div class="card" id="formCard">
+    <h2>Employee Information</h2>
+    <p class="sub">Fields shaded gold were pulled from the application on file — check them, and correct anything that's changed.</p>
+
+    <div class="grid3">
+      <div class="field"><label>First Name <span class="prefilled-tag" id="tag_first">from application</span></label><input type="text" id="legal_first_name"></div>
+      <div class="field"><label>Middle Name <span class="prefilled-tag" id="tag_middle">from application</span></label><input type="text" id="legal_middle_name"></div>
+      <div class="field"><label>Last Name <span class="prefilled-tag" id="tag_last">from application</span></label><input type="text" id="legal_last_name"></div>
+    </div>
+    <div class="field"><label>Other Last Names Used (if any)</label><input type="text" id="other_last_names"></div>
+
+    <div class="grid2">
+      <div class="field"><label>Address <span class="prefilled-tag" id="tag_addr">from application</span></label><input type="text" id="address"></div>
+      <div class="field"><label>Apt/Unit #</label><input type="text" id="address_2"></div>
+    </div>
+    <div class="grid3">
+      <div class="field"><label>City</label><input type="text" id="city"></div>
+      <div class="field"><label>State</label>
+        <select id="state"><option value="">…</option><option>NY</option><option>NJ</option><option>CT</option><option>RI</option><option>MA</option><option>FL</option></select>
+      </div>
+      <div class="field"><label>Zip</label><input type="text" id="zip" maxlength="10"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Phone <span class="prefilled-tag" id="tag_phone">from application</span></label><input type="text" id="phone"></div>
+      <div class="field"><label>Email</label><input type="email" id="email"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Date of Birth</label><input type="text" id="date_of_birth" data-date-field="1" placeholder="MM/DD/YYYY"></div>
+      <div class="field"><label>Social Security Number <span class="prefilled-tag" id="tag_ssn">from application</span></label><input type="text" id="ssn" placeholder="___-__-____" maxlength="11"></div>
+    </div>
+  </div>
+
+  <div class="card" id="citizenshipCard" style="display:none">
+    <h2>Citizenship / Immigration Status</h2>
+    <p class="sub">I attest, under penalty of perjury, that I am:</p>
+
+    <div class="radio-card"><label><input type="radio" name="citizenship_status" value="us_citizen"> A citizen of the United States</label></div>
+    <div class="radio-card"><label><input type="radio" name="citizenship_status" value="noncitizen_national"> A noncitizen national of the United States</label></div>
+    <div class="radio-card">
+      <label><input type="radio" name="citizenship_status" value="lawful_permanent_resident"> A lawful permanent resident</label>
+      <div class="conditional-fields" id="lpr_fields">
+        <div class="field"><label>USCIS Number</label><input type="text" id="uscis_number_lpr"></div>
+      </div>
+    </div>
+    <div class="radio-card">
+      <label><input type="radio" name="citizenship_status" value="alien_authorized_to_work"> An alien authorized to work until the date below</label>
+      <div class="conditional-fields" id="alien_fields">
+        <div class="field"><label>USCIS Number</label><input type="text" id="uscis_number_alien"></div>
+        <div class="field"><label>Work Authorization Expiration Date</label><input type="text" id="work_auth_exp" data-date-field="1" placeholder="MM/DD/YYYY"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="signCard" style="display:none">
+    <h2>Signature</h2>
+    <div class="sig-box">
+      <div class="field" style="margin-bottom:8px"><label>Type your full legal name to sign</label><input type="text" id="signature_name"></div>
+      <p class="sub" style="margin:0">This records your attestation electronically, with a timestamp kept for our records. The official date on this form is added once your hire is confirmed.</p>
+    </div>
+    <button class="btn" id="submitBtn">Sign & Save I-9 Section 1</button>
+    <div id="resultArea"></div>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://guxemrdukpiqpawskapv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6UwA2vBI-Bw-2Kndb198hg_LkQ0vpJF';
+let supabaseClient;
+try {
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (err) {
+  document.getElementById('loginStatus').textContent = 'Setup error: ' + (err.message || String(err));
+}
+
+let selectedCandidateId = null;
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('login_email').value.trim();
+  const password = document.getElementById('login_password').value;
+  const loginStatus = document.getElementById('loginStatus');
+  loginStatus.textContent = 'Logging in…';
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) { loginStatus.textContent = 'Login failed: ' + error.message; return; }
+    loginStatus.textContent = '';
+    document.getElementById('loginGateCard').style.display = 'none';
+    document.getElementById('candidateGateCard').style.display = 'block';
+    await loadCandidates();
+  } catch (err) {
+    loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err));
+  }
+});
+
+async function loadCandidates() {
+  const select = document.getElementById('candidateSelect');
+  const { data, error } = await supabaseClient
+    .from('candidates')
+    .select('id, first_name, last_name, status, created_at')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    select.innerHTML = `<option value="">Error loading candidates: ${error.message}</option>`;
+    return;
+  }
+  if (!data || data.length === 0) {
+    select.innerHTML = `<option value="">No candidates found yet</option>`;
+    return;
+  }
+  select.innerHTML = `<option value="">Select a candidate…</option>` +
+    data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} — ${c.status}</option>`).join('');
+}
+
+document.getElementById('candidateSelect').addEventListener('change', async (e) => {
+  selectedCandidateId = e.target.value;
+  if (!selectedCandidateId) return;
+  await loadCandidateData(selectedCandidateId);
+  document.getElementById('formCard').style.display = 'block';
+  document.getElementById('citizenshipCard').style.display = 'block';
+  document.getElementById('signCard').style.display = 'block';
+});
+
+async function loadCandidateData(candidateId) {
+  const { data: candidate } = await supabaseClient.from('candidates').select('*').eq('id', candidateId).single();
+  const { data: application } = await supabaseClient.from('applications').select('*').eq('candidate_id', candidateId).single();
+  const { data: existingI9 } = await supabaseClient.from('i9_section1').select('*').eq('candidate_id', candidateId).single();
+
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
+  const markPrefilled = (fieldId, tagId) => {
+    const el = document.getElementById(fieldId);
+    if (el && el.value) { el.classList.add('prefilled'); }
+    else { const tag = document.getElementById(tagId); if (tag) tag.style.display = 'none'; }
+  };
+
+  if (candidate) {
+    setVal('legal_first_name', candidate.first_name);
+    setVal('legal_middle_name', candidate.middle_name);
+    setVal('legal_last_name', candidate.last_name);
+  }
+  if (application) {
+    setVal('address', application.street_address);
+    setVal('address_2', application.apt_number);
+    setVal('city', application.city);
+    setVal('state', application.state);
+    setVal('zip', application.zip);
+    setVal('phone', application.phone);
+    setVal('ssn', application.ssn);
+  }
+  // If an I-9 Section 1 already exists for this candidate, load it (edit mode) —
+  // this takes priority over the application data above, since it's more current.
+  if (existingI9) {
+    setVal('legal_first_name', existingI9.legal_first_name);
+    setVal('legal_middle_name', existingI9.legal_middle_name);
+    setVal('legal_last_name', existingI9.legal_last_name);
+    setVal('other_last_names', existingI9.other_last_names);
+    setVal('address', existingI9.address);
+    setVal('address_2', existingI9.address_2);
+    setVal('city', existingI9.city);
+    setVal('state', existingI9.state);
+    setVal('zip', existingI9.zip);
+    setVal('phone', existingI9.phone);
+    setVal('email', existingI9.email);
+    setVal('ssn', existingI9.ssn);
+    if (existingI9.date_of_birth) setVal('date_of_birth', formatIsoToMDY(existingI9.date_of_birth));
+    if (existingI9.citizenship_status) {
+      const radio = document.querySelector(`input[name="citizenship_status"][value="${existingI9.citizenship_status}"]`);
+      if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change')); }
+    }
+    setVal('uscis_number_lpr', existingI9.alien_uscis_number);
+    setVal('uscis_number_alien', existingI9.alien_uscis_number);
+    if (existingI9.work_authorization_expiration) setVal('work_auth_exp', formatIsoToMDY(existingI9.work_authorization_expiration));
+  }
+
+  markPrefilled('legal_first_name', 'tag_first');
+  markPrefilled('legal_middle_name', 'tag_middle');
+  markPrefilled('legal_last_name', 'tag_last');
+  markPrefilled('address', 'tag_addr');
+  markPrefilled('phone', 'tag_phone');
+  markPrefilled('ssn', 'tag_ssn');
+}
+
+function formatIsoToMDY(iso) {
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[2]}/${m[3]}/${m[1]}` : '';
+}
+function mdyToIso(mdy) {
+  const m = String(mdy).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? `${m[3]}-${m[1]}-${m[2]}` : null;
+}
+
+// Show/hide the USCIS Number / expiration fields based on citizenship selection
+document.querySelectorAll('input[name="citizenship_status"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    document.getElementById('lpr_fields').style.display = radio.value === 'lawful_permanent_resident' && radio.checked ? 'block' : (document.querySelector('input[name="citizenship_status"]:checked')?.value === 'lawful_permanent_resident' ? 'block' : 'none');
+    document.getElementById('alien_fields').style.display = document.querySelector('input[name="citizenship_status"]:checked')?.value === 'alien_authorized_to_work' ? 'block' : 'none';
+  });
+});
+
+// SSN + date masking
+document.getElementById('ssn').addEventListener('input', (e) => {
+  let digits = e.target.value.replace(/\D/g, '').slice(0, 9);
+  let out = digits;
+  if (digits.length > 5) out = digits.slice(0,3) + '-' + digits.slice(3,5) + '-' + digits.slice(5);
+  else if (digits.length > 3) out = digits.slice(0,3) + '-' + digits.slice(3);
+  e.target.value = out;
+});
+document.querySelectorAll('[data-date-field]').forEach(inputEl => {
+  inputEl.addEventListener('input', () => {
+    let digits = inputEl.value.replace(/\D/g, '').slice(0, 8);
+    let out = digits;
+    if (digits.length > 4) out = digits.slice(0,2) + '/' + digits.slice(2,4) + '/' + digits.slice(4);
+    else if (digits.length > 2) out = digits.slice(0,2) + '/' + digits.slice(2);
+    inputEl.value = out;
+  });
+});
+
+document.getElementById('submitBtn').addEventListener('click', async () => {
+  const resultArea = document.getElementById('resultArea');
+  const val = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const name = val('signature_name');
+  const citizenshipStatus = document.querySelector('input[name="citizenship_status"]:checked')?.value;
+
+  if (!name) { resultArea.innerHTML = '<div class="result-warn">Please type a name to sign.</div>'; return; }
+  if (!citizenshipStatus) { resultArea.innerHTML = '<div class="result-warn">Please select a citizenship/immigration status.</div>'; return; }
+  if (!selectedCandidateId) { resultArea.innerHTML = '<div class="result-warn">No candidate selected.</div>'; return; }
+
+  let uscisNumber = '';
+  if (citizenshipStatus === 'lawful_permanent_resident') uscisNumber = val('uscis_number_lpr');
+  if (citizenshipStatus === 'alien_authorized_to_work') uscisNumber = val('uscis_number_alien');
+
+  resultArea.innerHTML = '<div class="sub">Saving…</div>';
+
+  try {
+    const { error } = await supabaseClient.from('i9_section1').upsert({
+      candidate_id: selectedCandidateId,
+      legal_first_name: val('legal_first_name'),
+      legal_middle_name: val('legal_middle_name'),
+      legal_last_name: val('legal_last_name'),
+      other_last_names: val('other_last_names'),
+      address: val('address'),
+      address_2: val('address_2'),
+      city: val('city'),
+      state: val('state'),
+      zip: val('zip'),
+      phone: val('phone'),
+      email: val('email'),
+      date_of_birth: mdyToIso(val('date_of_birth')),
+      ssn: val('ssn'),
+      citizenship_status: citizenshipStatus,
+      alien_uscis_number: uscisNumber,
+      work_authorization_expiration: mdyToIso(val('work_auth_exp')),
+      signature_data: name,
+      signed_at: new Date().toISOString()
+      // form_date intentionally left out — only an admin can set it, once hire is confirmed
+    }, { onConflict: 'candidate_id' });
+
+    if (error) throw new Error(error.message);
+    resultArea.innerHTML = `<div class="result-ok">✓ I-9 Section 1 signed by ${name} and saved.</div>`;
+  } catch (err) {
+    resultArea.innerHTML = `<div class="result-warn">${err.message || String(err)}</div>`;
+  }
+});
+</script>
+
+</body>
+</html>
