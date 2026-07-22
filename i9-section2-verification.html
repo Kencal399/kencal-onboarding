@@ -808,7 +808,7 @@ function createPanelController(panelEl) {
         if (!image) return null;
         const ext = (image.mediaType.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
         const path = `${candidateId}/${docTypeKey}_${side}_${Date.now()}.${ext}`;
-        const byteChars = atob(image.data);
+        const byteChars = atob(image.base64Data);
         const byteNumbers = new Array(byteChars.length);
         for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
         const byteArray = new Uint8Array(byteNumbers);
