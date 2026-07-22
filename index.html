@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kencal Onboarding</title>
+<style>
+  :root {
+    --navy: #1A2744; --navy-light: #24345a; --gold: #C8A84B; --gold-light: #ddc47f;
+    --paper: #F7F5F1; --ink: #22242b; --ink-soft: #5b5f6b; --line: #dcd9d2; --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif; }
+
+  .hero {
+    background: var(--navy);
+    color: #fff;
+    padding: 48px 24px 40px;
+    text-align: center;
+  }
+  .hero .brand { font-size: 26px; font-weight: 700; letter-spacing: 0.02em; }
+  .hero .brand span { color: var(--gold-light); }
+  .hero .tag { margin-top: 8px; font-size: 14px; color: #cfd6e6; }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 60px; }
+
+  .section-label {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--gold); margin: 36px 0 14px; padding-left: 2px;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  .step-row {
+    display: flex; align-items: stretch; gap: 16px; background: #fff;
+    border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 10px;
+    text-decoration: none; color: inherit; overflow: hidden; transition: border-color .15s ease;
+  }
+  .step-row:hover { border-color: var(--gold); }
+  .step-num {
+    flex-shrink: 0; width: 44px; display: flex; align-items: center; justify-content: center;
+    background: var(--navy); color: var(--gold-light); font-weight: 700; font-size: 15px;
+  }
+  .step-body { padding: 14px 16px; flex: 1; }
+  .step-title { font-weight: 600; font-size: 15px; color: var(--navy); }
+  .step-desc { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+  .step-arrow { display:flex; align-items:center; padding-right:16px; color: var(--line); font-size: 18px; }
+  .step-row:hover .step-arrow { color: var(--gold); }
+
+  .admin-row {
+    display: flex; align-items: center; gap: 14px; background: #fff;
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px;
+    margin-bottom: 10px; text-decoration: none; color: inherit; transition: border-color .15s ease;
+  }
+  .admin-row:hover { border-color: var(--gold); }
+  .admin-icon { font-size: 20px; flex-shrink: 0; width: 28px; text-align: center; }
+  .admin-title { font-weight: 600; font-size: 15px; color: var(--navy); }
+  .admin-desc { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+
+  .footer-note { text-align: center; font-size: 11.5px; color: #9a9d9a; margin-top: 40px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="brand">KENCAL <span>ONBOARDING</span></div>
+  <div class="tag">Employee onboarding, start to finish, in one place</div>
+</div>
+
+<div class="wrap">
+
+  <div class="section-label">The onboarding sequence</div>
+
+  <a class="step-row" href="application-form.html">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <div class="step-title">Application</div>
+      <div class="step-desc">Yazmin sits with the applicant to complete the initial application, in English or Spanish.</div>
+    </div>
+    <div class="step-arrow">→</div>
+  </a>
+
+  <a class="admin-row" href="admin-dashboard.html">
+    <div class="admin-icon">✓</div>
+    <div>
+      <div class="admin-title">Approve or Reject</div>
+      <div class="admin-desc">In the Admin Dashboard — decide whether this applicant qualifies to be hired.</div>
+    </div>
+  </a>
+
+  <a class="step-row" href="i9-section1.html">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <div class="step-title">I-9 Section 1</div>
+      <div class="step-desc">Employee information and citizenship/work authorization status.</div>
+    </div>
+    <div class="step-arrow">→</div>
+  </a>
+
+  <a class="step-row" href="w4-federal.html">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <div class="step-title">Federal W-4</div>
+      <div class="step-desc">Withholding certificate for federal income tax.</div>
+    </div>
+    <div class="step-arrow">→</div>
+  </a>
+
+  <div class="step-row" style="cursor:default;">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <div class="step-title">State Withholding Form</div>
+      <div class="step-desc" style="margin-bottom:8px;">Pick whichever matches this employee's state:</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <a href="ny-it2104.html" style="font-size:13px; font-weight:600; color:var(--navy); border:1px solid var(--line); border-radius:6px; padding:5px 12px; text-decoration:none;">NY — IT-2104</a>
+        <a href="ct-w4.html" style="font-size:13px; font-weight:600; color:var(--navy); border:1px solid var(--line); border-radius:6px; padding:5px 12px; text-decoration:none;">CT — CT-W4</a>
+        <a href="nj-w4.html" style="font-size:13px; font-weight:600; color:var(--navy); border:1px solid var(--line); border-radius:6px; padding:5px 12px; text-decoration:none;">NJ — NJ-W4</a>
+      </div>
+    </div>
+  </div>
+
+  <a class="step-row" href="policies.html">
+    <div class="step-num">5</div>
+    <div class="step-body">
+      <div class="step-title">Policies</div>
+      <div class="step-desc">Company Work Rules and the Sexual Harassment Policy summary — sign-off for both.</div>
+    </div>
+    <div class="step-arrow">→</div>
+  </a>
+
+  <a class="step-row" href="i9-section2-verification.html">
+    <div class="step-num">6</div>
+    <div class="step-body">
+      <div class="step-title">I-9 Section 2 — Document Verification</div>
+      <div class="step-desc">Yazmin examines the physical ID documents in person and verifies them.</div>
+    </div>
+    <div class="step-arrow">→</div>
+  </a>
+
+  <a class="admin-row" href="admin-dashboard.html">
+    <div class="admin-icon">📅</div>
+    <div>
+      <div class="admin-title">Confirm Hire</div>
+      <div class="admin-desc">Once a start date is set, this one click dates every form at once.</div>
+    </div>
+  </a>
+
+  <div class="section-label">Admin</div>
+
+  <a class="admin-row" href="admin-dashboard.html">
+    <div class="admin-icon">📋</div>
+    <div>
+      <div class="admin-title">Admin Dashboard</div>
+      <div class="admin-desc">Full candidate list, approve/reject, confirm hire, and a per-candidate progress checklist.</div>
+    </div>
+  </a>
+
+  <div class="footer-note">
+    Kencal Maintenance Corporation — internal use only
+  </div>
+
+</div>
+
+</body>
+</html>

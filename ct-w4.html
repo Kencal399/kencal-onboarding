@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kencal — CT-W4</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root { --navy:#1A2744; --navy-light:#24345a; --gold:#C8A84B; --gold-light:#ddc47f; --paper:#F7F5F1; --ink:#22242b; --ink-soft:#5b5f6b; --line:#dcd9d2; --warn:#b23b3b; --radius:10px; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:'Segoe UI',-apple-system,sans-serif; }
+  .topbar { background:var(--navy); color:#fff; padding:18px 22px; }
+  .topbar .brand { font-weight:700; font-size:15px; letter-spacing:0.02em; }
+  .topbar .brand span { color:var(--gold-light); }
+  .topbar .sub { font-size:12.5px; color:#cfd6e6; margin-top:2px; }
+  .wrap { max-width:640px; margin:0 auto; padding:20px 18px 60px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+  .card h2 { margin:0 0 4px; font-size:15px; color:var(--navy); }
+  .card .sub { margin:0 0 14px; font-size:12.5px; color:var(--ink-soft); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+  .field input, .field select { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; font-family:inherit; background:#fff; }
+  .field input.prefilled { background:#fbf7ea; border-color:var(--gold); }
+  .prefilled-tag { font-size:10.5px; color:#8a6a1f; font-weight:600; margin-left:6px; }
+  .code-card { border:1px solid var(--line); border-radius:8px; padding:12px; margin-bottom:8px; cursor:pointer; }
+  .code-card:hover { border-color:var(--gold); }
+  .code-card label { display:flex; align-items:flex-start; gap:10px; font-size:13.5px; cursor:pointer; }
+  .code-letter { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; background:var(--navy); color:#fff; border-radius:5px; font-weight:700; font-size:12px; flex-shrink:0; }
+  .state-warning { background:#fbeeee; border:1px solid #ecc5c5; color:#b23b3b; padding:12px 14px; border-radius:8px; font-size:13px; margin-bottom:14px; display:none; }
+  .lang-gate { text-align:center; padding:30px 20px; }
+  .lang-gate h1 { font-size:18px; color:var(--navy); margin-bottom:8px; }
+  .gate-btn { display:block; width:100%; max-width:320px; margin:0 auto 10px; padding:14px; border:2px solid var(--navy); border-radius:10px; background:#fff; color:var(--navy); font-size:15px; font-weight:600; cursor:pointer; }
+  .gate-btn:hover { background:var(--navy); color:#fff; }
+  .btn { display:block; width:100%; background:var(--navy); color:#fff; border:none; border-radius:8px; padding:13px; font-size:15px; font-weight:600; cursor:pointer; margin-top:6px; }
+  .btn:hover { background:var(--navy-light); }
+  .result-ok { background:#eef7f1; border:1px solid #bfe3cc; color:#2e7d4f; padding:12px 14px; border-radius:8px; font-size:14px; font-weight:600; margin-top:14px; }
+  .result-warn { background:#fbeeee; border:1px solid #ecc5c5; color:#b23b3b; padding:12px 14px; border-radius:8px; font-size:14px; font-weight:600; margin-top:14px; }
+  .sig-box { border:1px solid var(--line); border-radius:8px; padding:14px; background:#fffdf8; }
+  #formCard, #signCard { display:none; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">KENCAL <span>ONBOARDING</span></div>
+  <div class="sub">Form CT-W4 — Employee's Withholding Certificate</div>
+</div>
+
+<div class="wrap">
+
+  <div class="card" id="loginGateCard">
+    <div class="lang-gate">
+      <h1>Staff Login</h1>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 10px;"><label>Email</label><input type="email" id="login_email"></div>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 16px;"><label>Password</label><input type="password" id="login_password"></div>
+      <button class="gate-btn" id="loginBtn">Log in</button>
+      <p id="loginStatus" class="sub" style="margin-top:10px"></p>
+    </div>
+  </div>
+
+  <div class="card" id="candidateGateCard" style="display:none">
+    <h2>Select a candidate</h2>
+    <p class="sub">Name, address, and SSN fill in automatically from what's already on file.</p>
+    <select id="candidateSelect" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
+      <option value="">Loading candidates…</option>
+    </select>
+  </div>
+
+  <div class="card" id="formCard">
+    <div class="state-warning" id="stateWarning"></div>
+    <h2>Personal Information</h2>
+    <div class="grid3">
+      <div class="field"><label>First Name <span class="prefilled-tag" id="tag_first">on file</span></label><input type="text" id="first_name"></div>
+      <div class="field"><label>Middle</label><input type="text" id="middle_name"></div>
+      <div class="field"><label>Last Name <span class="prefilled-tag" id="tag_last">on file</span></label><input type="text" id="last_name"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Home Address <span class="prefilled-tag" id="tag_addr">on file</span></label><input type="text" id="address"></div>
+      <div class="field"><label>SSN <span class="prefilled-tag" id="tag_ssn">on file</span></label><input type="text" id="ssn" maxlength="11"></div>
+    </div>
+
+    <div class="field">
+      <label>Line 1 — Withholding Code</label>
+      <div class="code-card"><label><input type="radio" name="withholding_code" value="A"><span class="code-letter">A</span> Married, combined income $100,500 or less (both spouses select A)</label></div>
+      <div class="code-card"><label><input type="radio" name="withholding_code" value="B"><span class="code-letter">B</span> Head of Household, expected income more than $19,000</label></div>
+      <div class="code-card"><label><input type="radio" name="withholding_code" value="C"><span class="code-letter">C</span> Single, expected income more than $15,000; or Married filing jointly, both spouses working, combined income more than $100,500</label></div>
+      <div class="code-card"><label><input type="radio" name="withholding_code" value="D"><span class="code-letter">D</span> Elect the highest level of withholding</label></div>
+      <div class="code-card"><label><input type="radio" name="withholding_code" value="E"><span class="code-letter">E</span> Nonresident — expect no Connecticut income tax liability</label></div>
+      <div class="code-card"><label><input type="radio" name="withholding_code" value="F"><span class="code-letter">F</span> No withholding certificate on file (default — highest withholding)</label></div>
+    </div>
+
+    <div class="field">
+      <label>Line 2 — Additional withholding amount per pay period</label>
+      <input type="text" id="additional_withholding" placeholder="$0">
+    </div>
+    <div class="field">
+      <label>Line 3 — Reduced withholding amount per pay period (if applicable)</label>
+      <input type="text" id="reduced_withholding" placeholder="$0">
+    </div>
+  </div>
+
+  <div class="card" id="signCard">
+    <h2>Signature</h2>
+    <div class="sig-box">
+      <div class="field" style="margin-bottom:8px"><label>Type your full legal name to sign</label><input type="text" id="signature_name"></div>
+      <p class="sub" style="margin:0">By signing, you declare under penalty of law that this certificate is true, complete, and correct. The official date is added once your hire is confirmed.</p>
+    </div>
+    <button class="btn" id="submitBtn">Sign & Save CT-W4</button>
+    <div id="resultArea"></div>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://guxemrdukpiqpawskapv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6UwA2vBI-Bw-2Kndb198hg_LkQ0vpJF';
+let supabaseClient;
+try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
+catch (err) { document.getElementById('loginStatus').textContent = 'Setup error: ' + (err.message || String(err)); }
+
+let selectedCandidateId = null;
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('login_email').value.trim();
+  const password = document.getElementById('login_password').value;
+  const loginStatus = document.getElementById('loginStatus');
+  loginStatus.textContent = 'Logging in…';
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) { loginStatus.textContent = 'Login failed: ' + error.message; return; }
+    loginStatus.textContent = '';
+    document.getElementById('loginGateCard').style.display = 'none';
+    await loadCandidates();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const preselectedId = urlParams.get('candidate_id');
+    if (preselectedId) {
+      document.getElementById('candidateSelect').value = preselectedId;
+      await selectCandidate(preselectedId);
+    } else {
+      document.getElementById('candidateGateCard').style.display = 'block';
+    }
+  } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
+});
+
+async function loadCandidates() {
+  const select = document.getElementById('candidateSelect');
+  const { data, error } = await supabaseClient.from('candidates').select('id, first_name, last_name, status, created_at').order('created_at', { ascending: false }).limit(50);
+  if (error) { select.innerHTML = `<option value="">Error: ${error.message}</option>`; return; }
+  if (!data || data.length === 0) { select.innerHTML = `<option value="">No candidates found</option>`; return; }
+  select.innerHTML = `<option value="">Select a candidate…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} — ${c.status}</option>`).join('');
+}
+
+async function selectCandidate(candidateId) {
+  selectedCandidateId = candidateId;
+  if (!selectedCandidateId) return;
+  await loadCandidateData(selectedCandidateId);
+  document.getElementById('formCard').style.display = 'block';
+  document.getElementById('signCard').style.display = 'block';
+}
+
+document.getElementById('candidateSelect').addEventListener('change', (e) => selectCandidate(e.target.value));
+
+async function loadCandidateData(candidateId) {
+  const { data: candidate } = await supabaseClient.from('candidates').select('*').eq('id', candidateId).single();
+  const warningEl = document.getElementById('stateWarning');
+  if (candidate && candidate.state && candidate.state !== 'CT') {
+    warningEl.style.display = 'block';
+    warningEl.textContent = `Heads up: this candidate's state on file is ${candidate.state}, not CT. Make sure CT-W4 is actually the right form for them before continuing.`;
+  } else {
+    warningEl.style.display = 'none';
+  }
+  const { data: application } = await supabaseClient.from('applications').select('*').eq('candidate_id', candidateId).single();
+  const { data: existing } = await supabaseClient.from('ct_w4').select('*').eq('candidate_id', candidateId).single();
+
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el && v !== null && v !== undefined && v !== '') el.value = v; };
+
+  if (candidate) { setVal('first_name', candidate.first_name); setVal('middle_name', candidate.middle_name); setVal('last_name', candidate.last_name); }
+  if (application) {
+    setVal('address', [application.street_address, application.apt_number, application.city, application.state, application.zip].filter(Boolean).join(', '));
+    setVal('ssn', application.ssn);
+  }
+  if (existing) {
+    if (existing.withholding_code) { const r = document.querySelector(`input[name="withholding_code"][value="${existing.withholding_code}"]`); if (r) r.checked = true; }
+    setVal('additional_withholding', existing.additional_withholding);
+    setVal('reduced_withholding', existing.reduced_withholding);
+  }
+
+  ['first_name','last_name','address','ssn'].forEach(id => {
+    const el = document.getElementById(id);
+    const tagId = 'tag_' + (id === 'address' ? 'addr' : id.replace('_name',''));
+    const tag = document.getElementById(tagId);
+    if (el && el.value) el.classList.add('prefilled'); else if (tag) tag.style.display = 'none';
+  });
+}
+
+document.getElementById('ssn').addEventListener('input', (e) => {
+  let digits = e.target.value.replace(/\D/g, '').slice(0, 9);
+  let out = digits;
+  if (digits.length > 5) out = digits.slice(0,3) + '-' + digits.slice(3,5) + '-' + digits.slice(5);
+  else if (digits.length > 3) out = digits.slice(0,3) + '-' + digits.slice(3);
+  e.target.value = out;
+});
+
+document.getElementById('submitBtn').addEventListener('click', async () => {
+  const resultArea = document.getElementById('resultArea');
+  const val = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const num = (id) => { const v = parseFloat(val(id).replace(/[^0-9.]/g,'')); return isNaN(v) ? 0 : v; };
+  const name = val('signature_name');
+  const code = document.querySelector('input[name="withholding_code"]:checked')?.value;
+
+  if (!name) { resultArea.innerHTML = '<div class="result-warn">Please type a name to sign.</div>'; return; }
+  if (!code) { resultArea.innerHTML = '<div class="result-warn">Please select a withholding code.</div>'; return; }
+  if (!selectedCandidateId) { resultArea.innerHTML = '<div class="result-warn">No candidate selected.</div>'; return; }
+
+  resultArea.innerHTML = '<div class="sub">Saving…</div>';
+  try {
+    const { data: existingRow } = await supabaseClient.from('ct_w4').select('signed_at').eq('candidate_id', selectedCandidateId).single();
+    const signedAt = (existingRow && existingRow.signed_at) ? existingRow.signed_at : new Date().toISOString();
+
+    const { error } = await supabaseClient.from('ct_w4').upsert({
+      candidate_id: selectedCandidateId,
+      withholding_code: code,
+      additional_withholding: num('additional_withholding'),
+      reduced_withholding: num('reduced_withholding'),
+      signature_data: name,
+      signed_at: signedAt
+    }, { onConflict: 'candidate_id' });
+
+    if (error) throw new Error(error.message);
+    resultArea.innerHTML = `<div class="result-ok">✓ CT-W4 signed by ${name} and saved.</div>
+      <a href="policies.html?candidate_id=${selectedCandidateId}" style="display:block; text-align:center; margin-top:10px; padding:12px; background:var(--navy); color:#fff; border-radius:8px; text-decoration:none; font-weight:600;">Continue to Policies →</a>`;
+  } catch (err) {
+    resultArea.innerHTML = `<div class="result-warn">${err.message || String(err)}</div>`;
+  }
+});
+</script>
+
+</body>
+</html>
