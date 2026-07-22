@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kencal — Employee Record</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root { --navy:#1A2744; --navy-light:#24345a; --gold:#C8A84B; --gold-light:#ddc47f; --paper:#F7F5F1; --ink:#22242b; --ink-soft:#5b5f6b; --line:#dcd9d2; --warn:#b23b3b; --ok:#2e7d4f; --radius:10px; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:'Segoe UI',-apple-system,sans-serif; }
+  .topbar { background:var(--navy); color:#fff; padding:18px 22px; }
+  .topbar .brand { font-weight:700; font-size:15px; letter-spacing:0.02em; }
+  .topbar .brand span { color:var(--gold-light); }
+  .wrap { max-width:760px; margin:0 auto; padding:20px 18px 60px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+  .lang-gate { text-align:center; padding:30px 20px; }
+  .lang-gate h1 { font-size:18px; color:var(--navy); margin-bottom:8px; }
+  .gate-btn { display:block; width:100%; max-width:320px; margin:0 auto 10px; padding:14px; border:2px solid var(--navy); border-radius:10px; background:#fff; color:var(--navy); font-size:15px; font-weight:600; cursor:pointer; }
+  .gate-btn:hover { background:var(--navy); color:#fff; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+  .field input, .field select { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; }
+  .btn { display:block; width:100%; background:var(--navy); color:#fff; border:none; border-radius:8px; padding:13px; font-size:15px; font-weight:600; cursor:pointer; margin-top:6px; }
+  .btn:hover { background:var(--navy-light); }
+
+  .section-title {
+    font-size:15px; font-weight:700; color:var(--navy); margin:0 0 4px;
+    padding-bottom:8px; border-bottom:2px solid var(--gold);
+  }
+  .section-sub { font-size:11.5px; color:var(--ink-soft); margin:0 0 14px; }
+  .not-completed { font-size:13px; color:var(--ink-soft); font-style:italic; padding:8px 0; }
+
+  .rec-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 2px 20px; }
+  .rec-row { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-bottom:1px solid #eee7d9; font-size:13px; }
+  .rec-row .k { color:var(--ink-soft); }
+  .rec-row .v { font-weight:600; color:var(--navy); text-align:right; }
+
+  .emp-entry { border:1px solid var(--line); border-radius:6px; padding:10px; margin-bottom:8px; font-size:12.5px; }
+  .emp-entry .k { color:var(--ink-soft); }
+
+  .sig-line { margin-top:12px; padding-top:10px; border-top:1px dashed var(--line); font-size:11.5px; color:var(--ink-soft); }
+
+  #printBtn { margin-top:6px; }
+  .header-meta { text-align:center; margin-bottom:24px; }
+  .header-meta .emp-name { font-size:22px; font-weight:700; color:var(--navy); }
+  .header-meta .printed-on { font-size:11.5px; color:var(--ink-soft); margin-top:4px; }
+
+  @media print {
+    .topbar, #loginGateCard, #candidateGateCard, .no-print { display:none !important; }
+    body { background:#fff; }
+    .card { border:none; box-shadow:none; padding:0 0 20px; margin-bottom:0; page-break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">KENCAL <span>ONBOARDING</span></div>
+</div>
+
+<div class="wrap">
+
+  <div class="card" id="loginGateCard">
+    <div class="lang-gate">
+      <h1>Staff Login</h1>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 10px;"><label>Email</label><input type="email" id="login_email"></div>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 16px;"><label>Password</label><input type="password" id="login_password"></div>
+      <button class="gate-btn" id="loginBtn">Log in</button>
+      <p id="loginStatus" class="section-sub" style="margin-top:10px"></p>
+    </div>
+  </div>
+
+  <div class="card" id="candidateGateCard" style="display:none">
+    <div class="section-title">Select an employee</div>
+    <p class="section-sub">Full record of everything on file — application, I-9, tax forms, and policy sign-offs.</p>
+    <select id="candidateSelect" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
+      <option value="">Loading…</option>
+    </select>
+  </div>
+
+  <div id="recordArea" style="display:none"></div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://guxemrdukpiqpawskapv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6UwA2vBI-Bw-2Kndb198hg_LkQ0vpJF';
+let supabaseClient;
+try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
+catch (err) { document.getElementById('loginStatus').textContent = 'Setup error: ' + (err.message || String(err)); }
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('login_email').value.trim();
+  const password = document.getElementById('login_password').value;
+  const loginStatus = document.getElementById('loginStatus');
+  loginStatus.textContent = 'Logging in…';
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) { loginStatus.textContent = 'Login failed: ' + error.message; return; }
+    loginStatus.textContent = '';
+    document.getElementById('loginGateCard').style.display = 'none';
+    await loadCandidates();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const preselectedId = urlParams.get('candidate_id');
+    if (preselectedId) {
+      document.getElementById('candidateSelect').value = preselectedId;
+      await buildRecord(preselectedId);
+    } else {
+      document.getElementById('candidateGateCard').style.display = 'block';
+    }
+  } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
+});
+
+async function loadCandidates() {
+  const select = document.getElementById('candidateSelect');
+  const { data, error } = await supabaseClient.from('candidates').select('id, first_name, last_name, status, created_at').order('created_at', { ascending: false }).limit(200);
+  if (error) { select.innerHTML = `<option value="">Error: ${error.message}</option>`; return; }
+  if (!data || data.length === 0) { select.innerHTML = `<option value="">No candidates found</option>`; return; }
+  select.innerHTML = `<option value="">Select…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} — ${c.status}</option>`).join('');
+}
+
+document.getElementById('candidateSelect').addEventListener('change', (e) => buildRecord(e.target.value));
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[2]}/${m[3]}/${m[1]}` : iso;
+}
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? iso : d.toLocaleString();
+}
+function fmtBool(v) { return v === true ? 'Yes' : (v === false ? 'No' : ''); }
+function row(label, value) {
+  const empty = value === null || value === undefined || String(value).trim() === '';
+  return `<div class="rec-row"><span class="k">${label}</span><span class="v">${empty ? '—' : value}</span></div>`;
+}
+function section(title, sub, bodyHtml) {
+  return `<div class="card">
+    <div class="section-title">${title}</div>
+    ${sub ? `<p class="section-sub">${sub}</p>` : ''}
+    ${bodyHtml}
+  </div>`;
+}
+function sigLine(signedAt, formDate, signatureName) {
+  if (!signedAt && !signatureName) return '';
+  return `<div class="sig-line">Signed by ${signatureName || '—'} · Signed: ${fmtDateTime(signedAt)} · Form date: ${fmtDate(formDate) || 'not yet dated'}</div>`;
+}
+
+const CITIZENSHIP_LABELS = {
+  us_citizen: 'U.S. Citizen', noncitizen_national: 'Noncitizen National',
+  lawful_permanent_resident: 'Lawful Permanent Resident', alien_authorized_to_work: 'Alien Authorized to Work'
+};
+const FILING_STATUS_LABELS_FED = { single: 'Single/Married filing separately', married_filing_jointly: 'Married filing jointly', head_of_household: 'Head of Household' };
+const SCHEDULE_LABELS = { full_time: 'Full Time', temporary_night_only: 'Temporary Night Only', part_time_day_only: 'Part Time Day Only', either_day_or_night: 'Either Day or Night' };
+
+async function buildRecord(candidateId) {
+  if (!candidateId) return;
+  document.getElementById('candidateGateCard').style.display = 'none';
+  const recordArea = document.getElementById('recordArea');
+  recordArea.style.display = 'block';
+  recordArea.innerHTML = `<div class="card"><p class="section-sub">Loading record…</p></div>`;
+
+  const [
+    { data: candidate }, { data: application }, { data: employmentHistory },
+    { data: i9s1 }, { data: i9s2 }, { data: w4 }, { data: it2104 }, { data: ctw4 }, { data: njw4 },
+    { data: policyAcks }
+  ] = await Promise.all([
+    supabaseClient.from('candidates').select('*').eq('id', candidateId).single(),
+    supabaseClient.from('applications').select('*').eq('candidate_id', candidateId).single(),
+    supabaseClient.from('employment_history').select('*').eq('candidate_id', candidateId).order('sequence_order'),
+    supabaseClient.from('i9_section1').select('*').eq('candidate_id', candidateId).single(),
+    supabaseClient.from('i9_section2').select('*').eq('candidate_id', candidateId).single(),
+    supabaseClient.from('w4_federal').select('*').eq('candidate_id', candidateId).single(),
+    supabaseClient.from('ny_it2104').select('*').eq('candidate_id', candidateId).single(),
+    supabaseClient.from('ct_w4').select('*').eq('candidate_id', candidateId).single(),
+    supabaseClient.from('nj_w4').select('*').eq('candidate_id', candidateId).single(),
+    supabaseClient.from('policy_acknowledgments').select('*').eq('candidate_id', candidateId)
+  ]);
+
+  let html = '';
+
+  html += `<div class="header-meta">
+    <div class="emp-name">${candidate ? candidate.last_name + ', ' + candidate.first_name : 'Employee'}</div>
+    <div class="printed-on">Status: ${candidate ? candidate.status : '—'} &nbsp;·&nbsp; Printed ${new Date().toLocaleString()}</div>
+  </div>`;
+
+  // ---- Application ----
+  if (application) {
+    let empHtml = '';
+    if (employmentHistory && employmentHistory.length > 0) {
+      empHtml = employmentHistory.map(e => `<div class="emp-entry">
+        <div><span class="k">Employer:</span> ${e.employer_name_address || '—'}</div>
+        <div><span class="k">Dates:</span> ${fmtDate(e.date_from) || '—'} to ${fmtDate(e.date_to) || '—'} &nbsp; <span class="k">Position:</span> ${e.position || '—'}</div>
+        <div><span class="k">Salary:</span> ${e.salary || '—'} &nbsp; <span class="k">Reason for leaving:</span> ${e.reason_for_leaving || '—'}</div>
+      </div>`).join('');
+    } else {
+      empHtml = `<p class="not-completed">No employment history entries on file.</p>`;
+    }
+
+    html += section('Application', 'Signed ' + fmtDateTime(application.signed_at) + (application.application_date ? ' · Dated ' + fmtDate(application.application_date) : ''), `
+      <div class="rec-grid">
+        ${row('SSN', application.ssn)}
+        ${row('Phone', application.phone)}
+        ${row('Address', [application.street_address, application.apt_number].filter(Boolean).join(' '))}
+        ${row('City/State/Zip', [application.city, application.state, application.zip].filter(Boolean).join(', '))}
+        ${row('Desired Schedule', SCHEDULE_LABELS[application.desired_schedule] || application.desired_schedule)}
+        ${row('Legally Eligible to Work', fmtBool(application.legally_eligible))}
+        ${row('Felony Conviction', fmtBool(application.felony_conviction))}
+        ${row('Emergency Contact', application.emergency_contact_name)}
+        ${row('Emergency Phone', application.emergency_contact_phone)}
+        ${row('Preferred Language', application.preferred_language === 'es' ? 'Spanish' : 'English')}
+        ${row('Electronic Signature Consent', fmtBool(application.esign_consent_given))}
+      </div>
+      <p class="section-sub" style="margin-top:14px; font-weight:600; color:var(--navy);">Employment History</p>
+      ${empHtml}
+    `);
+  } else {
+    html += section('Application', null, `<p class="not-completed">Not yet completed.</p>`);
+  }
+
+  // ---- I-9 Section 1 ----
+  if (i9s1) {
+    html += section('I-9 Section 1 — Employee Information', null, `
+      <div class="rec-grid">
+        ${row('Legal Name', [i9s1.legal_first_name, i9s1.legal_middle_name, i9s1.legal_last_name].filter(Boolean).join(' '))}
+        ${row('Other Last Names Used', i9s1.other_last_names)}
+        ${row('Address', [i9s1.address, i9s1.address_2].filter(Boolean).join(' '))}
+        ${row('City/State/Zip', [i9s1.city, i9s1.state, i9s1.zip].filter(Boolean).join(', '))}
+        ${row('Date of Birth', fmtDate(i9s1.date_of_birth))}
+        ${row('SSN', i9s1.ssn)}
+        ${row('Citizenship/Immigration Status', CITIZENSHIP_LABELS[i9s1.citizenship_status] || i9s1.citizenship_status)}
+        ${row('USCIS Number', i9s1.alien_uscis_number)}
+        ${row('Work Authorization Expiration', fmtDate(i9s1.work_authorization_expiration))}
+      </div>
+      ${sigLine(i9s1.signed_at, i9s1.form_date, i9s1.signature_data)}
+    `);
+  } else {
+    html += section('I-9 Section 1 — Employee Information', null, `<p class="not-completed">Not yet completed.</p>`);
+  }
+
+  // ---- I-9 Section 2 ----
+  if (i9s2) {
+    let s2Body = `<div class="rec-grid">
+      ${row('Document Title', i9s2.document_title)}
+      ${row('Issuing Authority', i9s2.issuing_authority)}
+      ${row('Document Number', i9s2.document_number)}
+      ${row('Expiration Date', fmtDate(i9s2.expiration_date))}
+    </div>`;
+    if (i9s2.list_c_document_title) {
+      s2Body += `<p class="section-sub" style="margin-top:12px; font-weight:600; color:var(--navy);">Second Document (List C)</p>
+        <div class="rec-grid">
+          ${row('Document Title', i9s2.list_c_document_title)}
+          ${row('Issuing Authority', i9s2.list_c_issuing_authority)}
+          ${row('Document Number', i9s2.list_c_document_number)}
+          ${row('Expiration Date', fmtDate(i9s2.list_c_expiration_date))}
+        </div>`;
+    }
+    s2Body += `<div class="rec-row" style="margin-top:8px;"><span class="k">Verified in person</span><span class="v">${fmtDateTime(i9s2.verified_in_person_at)}</span></div>`;
+    s2Body += sigLine(i9s2.signed_at, i9s2.form_date, i9s2.supervisor_signature);
+    html += section('I-9 Section 2 — Document Verification', null, s2Body);
+  } else {
+    html += section('I-9 Section 2 — Document Verification', null, `<p class="not-completed">Not yet completed.</p>`);
+  }
+
+  // ---- Federal W-4 ----
+  if (w4) {
+    html += section('Federal W-4', null, `
+      <div class="rec-grid">
+        ${row('Filing Status', FILING_STATUS_LABELS_FED[w4.filing_status] || w4.filing_status)}
+        ${row('Multiple Jobs Checkbox', fmtBool(w4.multiple_jobs_checkbox))}
+        ${row('Qualifying Children', w4.qualifying_children_count)}
+        ${row('Other Dependents', w4.other_dependents_count)}
+        ${row('Dependents Amount', w4.dependents_amount ? '$' + w4.dependents_amount : '')}
+        ${row('Other Income', w4.other_income ? '$' + w4.other_income : '')}
+        ${row('Deductions', w4.deductions ? '$' + w4.deductions : '')}
+        ${row('Extra Withholding', w4.extra_withholding ? '$' + w4.extra_withholding : '')}
+        ${row('Exempt', fmtBool(w4.exempt))}
+      </div>
+      ${sigLine(w4.signed_at, w4.form_date, w4.signature_data)}
+    `);
+  } else {
+    html += section('Federal W-4', null, `<p class="not-completed">Not yet completed.</p>`);
+  }
+
+  // ---- State form (whichever exists) ----
+  if (it2104) {
+    html += section('NY IT-2104', null, `
+      <div class="rec-grid">
+        ${row('Marital Status', it2104.filing_status)}
+        ${row('NYC Resident', fmtBool(it2104.nyc_resident))}
+        ${row('Yonkers Resident', fmtBool(it2104.yonkers_resident))}
+        ${row('Total Allowances', it2104.total_allowances)}
+        ${row('Additional Withholding', it2104.additional_withholding ? '$' + it2104.additional_withholding : '')}
+      </div>
+      ${sigLine(it2104.signed_at, it2104.form_date, it2104.signature_data)}
+    `);
+  } else if (ctw4) {
+    html += section('CT-W4', null, `
+      <div class="rec-grid">
+        ${row('Withholding Code', ctw4.withholding_code)}
+        ${row('Additional Withholding', ctw4.additional_withholding ? '$' + ctw4.additional_withholding : '')}
+        ${row('Reduced Withholding', ctw4.reduced_withholding ? '$' + ctw4.reduced_withholding : '')}
+      </div>
+      ${sigLine(ctw4.signed_at, ctw4.form_date, ctw4.signature_data)}
+    `);
+  } else if (njw4) {
+    html += section('NJ-W4', null, `
+      <div class="rec-grid">
+        ${row('Filing Status', njw4.filing_status)}
+        ${row('Wage Chart Letter', njw4.wage_chart_letter)}
+        ${row('Total Allowances', njw4.total_allowances)}
+        ${row('Additional Withholding', njw4.additional_withholding ? '$' + njw4.additional_withholding : '')}
+        ${row('Exempt', fmtBool(njw4.exempt))}
+      </div>
+      ${sigLine(njw4.signed_at, njw4.form_date, njw4.signature_data)}
+    `);
+  } else {
+    html += section('State Withholding Form', null, `<p class="not-completed">Not yet completed.</p>`);
+  }
+
+  // ---- Policies ----
+  if (policyAcks && policyAcks.length > 0) {
+    const policyRows = policyAcks.map(p => `
+      <div class="rec-row"><span class="k">${p.policy_name}</span><span class="v">Signed ${fmtDateTime(p.signed_at)}${p.form_date ? ' · Dated ' + fmtDate(p.form_date) : ''}</span></div>
+    `).join('');
+    html += section('Policy Acknowledgments', null, policyRows);
+  } else {
+    html += section('Policy Acknowledgments', null, `<p class="not-completed">Not yet completed.</p>`);
+  }
+
+  html += `<button class="btn no-print" id="printBtn">Print / Save as PDF</button>`;
+
+  recordArea.innerHTML = html;
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+}
+</script>
+
+</body>
+</html>
