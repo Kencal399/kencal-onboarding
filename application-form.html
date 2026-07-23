@@ -145,6 +145,7 @@ const T = {
     sig_note: 'By typing your name above, you are signing this application electronically. The date will be recorded automatically.',
     submit: 'Submit Application',
     err_no_signature: 'Please type a name to sign before submitting.',
+    err_required_fields: 'Please fill in all fields marked with a red *.',
     success: (name) => `✓ Application signed by ${name} and submitted successfully.`
   },
   es: {
@@ -188,6 +189,7 @@ const T = {
     sig_note: 'Al escribir su nombre arriba, usted está firmando esta solicitud electrónicamente. La fecha se registrará automáticamente.',
     submit: 'Enviar Solicitud',
     err_no_signature: 'Por favor escriba un nombre para firmar antes de enviar.',
+    err_required_fields: 'Por favor complete todos los campos marcados con un * rojo.',
     success: (name) => `✓ Solicitud firmada por ${name} y enviada exitosamente.`
   }
 };
@@ -305,29 +307,29 @@ function buildForm() {
     <div class="card">
       <h2>${t.section_applicant}</h2>
       <div class="grid3">
-        <div class="field"><label>${t.label_first_name}</label><input type="text" id="first_name"></div>
+        <div class="field"><label>${t.label_first_name} <span style="color:#b23b3b">*</span></label><input type="text" id="first_name"></div>
         <div class="field"><label>${t.label_middle_name}</label><input type="text" id="middle_name"></div>
-        <div class="field"><label>${t.label_last_name}</label><input type="text" id="last_name"></div>
+        <div class="field"><label>${t.label_last_name} <span style="color:#b23b3b">*</span></label><input type="text" id="last_name"></div>
       </div>
       <div class="grid2">
-        <div class="field"><label>${t.label_ssn}</label><input type="text" id="ssn" placeholder="___-__-____" maxlength="11"></div>
-        <div class="field"><label>${t.label_phone}</label><input type="text" id="phone" placeholder="(___) ___-____"></div>
+        <div class="field"><label>${t.label_ssn} <span style="color:#b23b3b">*</span></label><input type="text" id="ssn" placeholder="___-__-____" maxlength="11"></div>
+        <div class="field"><label>${t.label_phone} <span style="color:#b23b3b">*</span></label><input type="text" id="phone" placeholder="(___) ___-____"></div>
       </div>
       <div class="grid2">
-        <div class="field"><label>${t.label_street}</label><input type="text" id="street_address"></div>
+        <div class="field"><label>${t.label_street} <span style="color:#b23b3b">*</span></label><input type="text" id="street_address"></div>
         <div class="field"><label>${t.label_apt}</label><input type="text" id="apt_number"></div>
       </div>
       <div class="grid3">
-        <div class="field"><label>${t.label_city}</label><input type="text" id="city"></div>
-        <div class="field"><label>${t.label_state}</label>
+        <div class="field"><label>${t.label_city} <span style="color:#b23b3b">*</span></label><input type="text" id="city"></div>
+        <div class="field"><label>${t.label_state} <span style="color:#b23b3b">*</span></label>
           <select id="state"><option value="">…</option><option>NY</option><option>NJ</option><option>CT</option><option>RI</option><option>MA</option><option>FL</option></select>
         </div>
-        <div class="field"><label>${t.label_zip}</label><input type="text" id="zip" maxlength="10"></div>
+        <div class="field"><label>${t.label_zip} <span style="color:#b23b3b">*</span></label><input type="text" id="zip" maxlength="10"></div>
       </div>
     </div>
 
     <div class="card">
-      <h2>${t.section_schedule}</h2>
+      <h2>${t.section_schedule} <span style="color:#b23b3b">*</span></h2>
       <div class="radio-row">
         <label class="radio-opt"><input type="radio" name="schedule" value="full_time"> ${t.opt_full_time}</label>
         <label class="radio-opt"><input type="radio" name="schedule" value="temporary_night_only"> ${t.opt_temp_night}</label>
@@ -335,7 +337,7 @@ function buildForm() {
         <label class="radio-opt"><input type="radio" name="schedule" value="either_day_or_night"> ${t.opt_either}</label>
       </div>
       <div style="margin-top:16px">
-        <label style="font-size:13px; font-weight:600; color:var(--navy);">${t.q_eligible}</label>
+        <label style="font-size:13px; font-weight:600; color:var(--navy);">${t.q_eligible} <span style="color:#b23b3b">*</span></label>
         <div class="yn-row" style="margin-top:6px">
           <label class="yn-opt"><input type="radio" name="eligible" value="yes"> ${t.yes}</label>
           <label class="yn-opt"><input type="radio" name="eligible" value="no"> ${t.no}</label>
@@ -356,7 +358,7 @@ function buildForm() {
 
     <div class="card">
       <div class="field">
-        <label>${t.q_felony}</label>
+        <label>${t.q_felony} <span style="color:#b23b3b">*</span></label>
         <div class="yn-row">
           <label class="yn-opt"><input type="radio" name="felony" value="yes"> ${t.yes}</label>
           <label class="yn-opt"><input type="radio" name="felony" value="no"> ${t.no}</label>
@@ -394,6 +396,19 @@ function buildForm() {
     e.target.value = out;
   });
 
+  function attachPhoneMask(inputEl) {
+    inputEl.addEventListener('input', (e) => {
+      let digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+      let out = digits;
+      if (digits.length > 6) out = '(' + digits.slice(0,3) + ') ' + digits.slice(3,6) + '-' + digits.slice(6);
+      else if (digits.length > 3) out = '(' + digits.slice(0,3) + ') ' + digits.slice(3);
+      else if (digits.length > 0) out = '(' + digits;
+      e.target.value = out;
+    });
+  }
+  attachPhoneMask(document.getElementById('phone'));
+  attachPhoneMask(document.getElementById('emergency_phone'));
+
   document.querySelectorAll('[data-date-field]').forEach(inputEl => {
     inputEl.addEventListener('input', () => {
       let digits = inputEl.value.replace(/\D/g, '').slice(0, 8);
@@ -407,10 +422,6 @@ function buildForm() {
   document.getElementById('submitBtn').addEventListener('click', async () => {
     const name = document.getElementById('signature_name').value.trim();
     const resultArea = document.getElementById('resultArea');
-    if (!name) {
-      resultArea.innerHTML = `<div class="result-warn">${t.err_no_signature}</div>`;
-      return;
-    }
 
     const val = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
     const radioVal = (name) => { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : null; };
@@ -418,7 +429,27 @@ function buildForm() {
 
     const firstName = val('first_name');
     const lastName = val('last_name');
-    if (!firstName || !lastName) {
+    const ssn = val('ssn');
+    const phone = val('phone');
+    const street = val('street_address');
+    const city = val('city');
+    const state = val('state');
+    const zip = val('zip');
+    const schedule = radioVal('schedule');
+    const eligible = radioVal('eligible');
+    const felony = radioVal('felony');
+    const felonyExplanation = val('felony_explanation');
+
+    const missingRequired =
+      !firstName || !lastName || !ssn || !phone || !street || !city || !state || !zip ||
+      !schedule || !eligible || !felony ||
+      (felony === 'yes' && !felonyExplanation);
+
+    if (missingRequired) {
+      resultArea.innerHTML = `<div class="result-warn">${t.err_required_fields}</div>`;
+      return;
+    }
+    if (!name) {
       resultArea.innerHTML = `<div class="result-warn">${t.err_no_signature}</div>`;
       return;
     }

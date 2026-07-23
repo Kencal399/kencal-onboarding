@@ -297,6 +297,14 @@ document.getElementById('ssn').addEventListener('input', (e) => {
   else if (digits.length > 3) out = digits.slice(0,3) + '-' + digits.slice(3);
   e.target.value = out;
 });
+document.getElementById('phone').addEventListener('input', (e) => {
+  let digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+  let out = digits;
+  if (digits.length > 6) out = '(' + digits.slice(0,3) + ') ' + digits.slice(3,6) + '-' + digits.slice(6);
+  else if (digits.length > 3) out = '(' + digits.slice(0,3) + ') ' + digits.slice(3);
+  else if (digits.length > 0) out = '(' + digits;
+  e.target.value = out;
+});
 document.querySelectorAll('[data-date-field]').forEach(inputEl => {
   inputEl.addEventListener('input', () => {
     let digits = inputEl.value.replace(/\D/g, '').slice(0, 8);

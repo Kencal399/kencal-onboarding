@@ -110,6 +110,21 @@ try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 catch (err) { document.getElementById('loginStatus').textContent = 'Setup error: ' + (err.message || String(err)); }
 
 let allCandidates = [];
+
+function fmtDate(input) {
+  if (!input) return '';
+  const isPureDate = typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input);
+  const d = new Date(input);
+  if (isNaN(d.getTime())) return input;
+  // Pure "date only" values (e.g. start_date) are stored/parsed as UTC
+  // midnight — reading them back with UTC methods avoids a timezone-driven
+  // off-by-one-day bug. Full timestamps (e.g. approved_at) already carry
+  // real offset info, so local methods give the correct calendar date.
+  const mm = String((isPureDate ? d.getUTCMonth() : d.getMonth()) + 1).padStart(2, '0');
+  const dd = String(isPureDate ? d.getUTCDate() : d.getDate()).padStart(2, '0');
+  const yyyy = isPureDate ? d.getUTCFullYear() : d.getFullYear();
+  return `${mm}/${dd}/${yyyy}`;
+}
 let currentFilter = 'all';
 let selectedCandidate = null;
 
@@ -158,7 +173,7 @@ function renderCandidateList() {
     <div class="candidate-row" data-id="${c.id}">
       <div>
         <div class="name">${c.last_name}, ${c.first_name}</div>
-        <div class="meta">${c.state || '—'} · ${new Date(c.created_at).toLocaleDateString()}</div>
+        <div class="meta">${c.state || '—'} · ${fmtDate(c.created_at)}</div>
       </div>
       <span class="status-pill status-${c.status}">${STATUS_LABELS[c.status] || c.status}</span>
     </div>
@@ -196,11 +211,23 @@ async function openCandidateDetail(candidateId) {
     <div class="detail-field"><span>Status</span><b><span class="status-pill status-${candidate.status}">${STATUS_LABELS[candidate.status] || candidate.status}</span></b></div>
     <div class="detail-field"><span>State</span><b>${candidate.state || '—'}</b></div>
     <div class="detail-field"><span>Phone</span><b>${candidate.phone || '—'}</b></div>
-    <div class="detail-field"><span>Applied</span><b>${new Date(candidate.created_at).toLocaleDateString()}</b></div>
-    ${candidate.approved_at ? `<div class="detail-field"><span>Approved</span><b>${new Date(candidate.approved_at).toLocaleDateString()}</b></div>` : ''}
-    ${candidate.hired_at ? `<div class="detail-field"><span>Hired</span><b>${new Date(candidate.hired_at).toLocaleDateString()}</b></div>` : ''}
-    ${candidate.start_date ? `<div class="detail-field"><span>Start Date</span><b>${candidate.start_date}</b></div>` : ''}
+    <div class="detail-field"><span>Applied</span><b>${fmtDate(candidate.created_at)}</b></div>
+    ${candidate.approved_at ? `<div class="detail-field"><span>Approved</span><b>${fmtDate(candidate.approved_at)}</b></div>` : ''}
+    ${candidate.hired_at ? `<div class="detail-field"><span>Hired</span><b>${fmtDate(candidate.hired_at)}</b></div>` : ''}
+    ${candidate.start_date ? `<div class="detail-field"><span>Start Date</span><b>${fmtDate(candidate.start_date)}</b></div>` : ''}
+    <div class="detail-field">
+      <span>Employing Entity</span>
+      <select id="employingEntitySelect" style="font-weight:600; border:1px solid var(--line); border-radius:6px; padding:4px 8px;">
+        <option value="KMC" ${candidate.employing_entity === 'KMC' ? 'selected' : ''}>Kencal Maintenance Corp. (KMC)</option>
+        <option value="KP" ${candidate.employing_entity === 'KP' ? 'selected' : ''}>Kencal Painting LLC</option>
+        <option value="KCM" ${candidate.employing_entity === 'KCM' ? 'selected' : ''}>Kencal Commercial Maintenance Corp.</option>
+      </select>
+    </div>
   `;
+  document.getElementById('employingEntitySelect').addEventListener('change', async (e) => {
+    const { error } = await supabaseClient.from('candidates').update({ employing_entity: e.target.value }).eq('id', candidateId);
+    if (error) alert('Could not update employing entity: ' + error.message);
+  });
 
   await loadChecklist(candidateId, candidate.state);
   renderActionArea(candidate);
@@ -306,7 +333,7 @@ async function confirmHire(candidateId) {
       .eq('candidate_id', candidateId);
     if (i9s2Err) throw new Error('Dating i9_section2 failed: ' + i9s2Err.message);
 
-    resultArea.innerHTML = `<div class="result-ok">✓ Hire confirmed. All forms dated ${startDate}.</div>`;
+    resultArea.innerHTML = `<div class="result-ok">✓ Hire confirmed. All forms dated ${fmtDate(startDate)}.</div>`;
     await openCandidateDetail(candidateId);
   } catch (err) {
     resultArea.innerHTML = `<div class="result-warn">${err.message || String(err)}</div>`;
