@@ -6,6 +6,7 @@
 <title>Kencal — Official Government Forms</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
   :root { --navy:#1A2744; --navy-light:#24345a; --gold:#C8A84B; --gold-light:#ddc47f; --paper:#F7F5F1; --ink:#22242b; --ink-soft:#5b5f6b; --line:#dcd9d2; --warn:#b23b3b; --ok:#2e7d4f; --radius:10px; }
   * { box-sizing:border-box; }
@@ -70,6 +71,13 @@
 
   <div id="docsArea" style="display:none"></div>
 
+  <div class="card" id="bulkExportCard" style="display:none">
+    <h2>Bulk Export — All Hired Employees</h2>
+    <p class="sub">For an audit or record request. Bundles every hired/verified employee's completed I-9, W-4, and state form (with attached document photos) into one ZIP file, one folder per person. Anything not yet completed is simply skipped for that person.</p>
+    <button class="dl-btn" id="bulkExportBtn" style="width:100%;">Generate Bulk Export ZIP</button>
+    <div id="bulkResultArea" style="margin-top:10px; font-size:13px;"></div>
+  </div>
+
 </div>
 
 <script>
@@ -90,6 +98,7 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     loginStatus.textContent = '';
     document.getElementById('loginGateCard').style.display = 'none';
     document.getElementById('candidateGateCard').style.display = 'block';
+    document.getElementById('bulkExportCard').style.display = 'block';
     await loadCandidates();
   } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
 });
@@ -145,6 +154,44 @@ function safeSelectDropdown(form, fieldName, value) {
   catch (e) { console.warn(`Could not select dropdown "${fieldName}":`, e.message); }
 }
 
+// Fetches each photographed document for this candidate and appends them
+// as extra pages onto the end of the given PDF — so the audit-ready I-9
+// travels together with copies of the actual documents examined, the same
+// way a real paper HR file would staple them together.
+async function attachDocumentPhotos(pdfDoc, candidateId) {
+  const { data: documents } = await supabaseClient.from('documents').select('*').eq('candidate_id', candidateId);
+  if (!documents || documents.length === 0) return;
+
+  const paths = documents.map(d => d.storage_path);
+  const { data: signedUrls } = await supabaseClient.storage.from('candidate-documents').createSignedUrls(paths, 3600);
+  if (!signedUrls) return;
+
+  for (let i = 0; i < documents.length; i++) {
+    const urlInfo = signedUrls[i];
+    if (!urlInfo || !urlInfo.signedUrl) continue;
+    try {
+      const resp = await fetch(urlInfo.signedUrl);
+      const imgBytes = await resp.arrayBuffer();
+      const isPng = documents[i].storage_path.toLowerCase().endsWith('.png');
+      const img = isPng ? await pdfDoc.embedPng(imgBytes) : await pdfDoc.embedJpg(imgBytes);
+
+      // Scale the photo to fit neatly on a standard letter page with margin
+      const pageWidth = 612, pageHeight = 792, margin = 40;
+      const maxW = pageWidth - margin * 2, maxH = pageHeight - margin * 2 - 30;
+      const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+      const w = img.width * scale, h = img.height * scale;
+
+      const page = pdfDoc.addPage([pageWidth, pageHeight]);
+      page.drawText(`Supporting Document: ${documents[i].doc_type} (uploaded ${new Date(documents[i].uploaded_at).toLocaleDateString()})`, {
+        x: margin, y: pageHeight - margin, size: 11
+      });
+      page.drawImage(img, { x: (pageWidth - w) / 2, y: pageHeight - margin - 20 - h, width: w, height: h });
+    } catch (err) {
+      console.warn(`Could not attach document photo (${documents[i].doc_type}):`, err.message);
+    }
+  }
+}
+
 function downloadBytes(bytes, filename) {
   const blob = new Blob([bytes], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
@@ -159,7 +206,7 @@ function downloadBytes(bytes, filename) {
 // filled PDF bytes, ready to download.
 // ============================================================================
 
-async function fillI9(candidate, i9s1, i9s2, employer) {
+async function fillI9(candidate, i9s1, i9s2, employer, candidateId) {
   const bytes = await fetchTemplateBytes('i9-blank.pdf');
   const pdfDoc = await PDFLib.PDFDocument.load(bytes);
   const form = pdfDoc.getForm();
@@ -220,6 +267,8 @@ async function fillI9(candidate, i9s1, i9s2, employer) {
     safeSetText(form, 'Employers Business or Org Address', employer.address);
   }
 
+  await attachDocumentPhotos(pdfDoc, candidateId);
+
   return await pdfDoc.save();
 }
 
@@ -265,6 +314,15 @@ async function fillW4(candidate, w4, i9s1, application, employer) {
     safeSetText(form, P + 'f1_14[0]', employer.ein);
   }
 
+  // No fillable field exists for the employee's own Step 5 signature/date —
+  // draw the recorded electronic signature directly onto that printed line
+  // so the form doesn't look unsigned, even though it legally was.
+  if (w4 && w4.signature_data) {
+    const page = pdfDoc.getPage(0);
+    page.drawText(`${w4.signature_data}  (Signed electronically)`, { x: 97, y: 90, size: 8 });
+    page.drawText(fmtDate(w4.form_date) || '(pending)', { x: 391, y: 90, size: 8 });
+  }
+
   return await pdfDoc.save();
 }
 
@@ -303,6 +361,13 @@ async function fillIT2104(candidate, it2104, i9s1, application, employer) {
     safeSetText(form, 'EIN', employer.ein);
   }
 
+  // No fillable field exists for the signature line itself — draw the
+  // recorded electronic signature directly onto it.
+  if (it2104 && it2104.signature_data) {
+    const page = pdfDoc.getPage(0);
+    page.drawText(`${it2104.signature_data}  (Signed electronically)`, { x: 40, y: 468, size: 8 });
+  }
+
   return await pdfDoc.save();
 }
 
@@ -332,6 +397,13 @@ async function fillCTW4(candidate, ctw4, i9s1, application, employer) {
     safeSetText(form, 'Text3', employer.legal_name);
     safeSetText(form, 'Text4', employer.ein);
     safeSetText(form, 'Employers business address', employer.address);
+  }
+
+  // No fillable field exists for the signature line itself — draw the
+  // recorded electronic signature directly onto it.
+  if (ctw4 && ctw4.signature_data) {
+    const page = pdfDoc.getPage(0);
+    page.drawText(`${ctw4.signature_data}  (Signed electronically)`, { x: 40, y: 200, size: 8 });
   }
 
   return await pdfDoc.save();
@@ -373,6 +445,13 @@ async function fillNJW4(candidate, njw4, i9s1, application, employer) {
     safeSetText(form, '6 I claim exemption from withholding of NJ Gross Income Tax and I certify that I have met the conditions in the', employer.ein);
   }
 
+  // No fillable field exists for the signature line itself — draw the
+  // recorded electronic signature directly onto it.
+  if (njw4 && njw4.signature_data) {
+    const page = pdfDoc.getPage(0);
+    page.drawText(`${njw4.signature_data}  (Signed electronically)`, { x: 22, y: 564, size: 8 });
+  }
+
   return await pdfDoc.save();
 }
 
@@ -411,7 +490,7 @@ async function loadDocs(candidateId) {
                     njw4 ? { key: 'njw4', label: 'NJ-W4', data: njw4 } : null;
 
   const rows = [
-    { name: 'Form I-9', ready: !!i9s1, action: async () => downloadBytes(await fillI9(candidate, i9s1, i9s2, employer), `I9_${candidate.last_name}.pdf`) },
+    { name: 'Form I-9', ready: !!i9s1, action: async () => downloadBytes(await fillI9(candidate, i9s1, i9s2, employer, candidateId), `I9_${candidate.last_name}.pdf`) },
     { name: 'Federal W-4', ready: !!w4, action: async () => downloadBytes(await fillW4(candidate, w4, i9s1, application, employer), `W4_${candidate.last_name}.pdf`) },
   ];
   if (stateForm) {
@@ -463,6 +542,78 @@ async function loadDocs(candidateId) {
     });
   });
 }
+
+document.getElementById('bulkExportBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('bulkExportBtn');
+  const resultArea = document.getElementById('bulkResultArea');
+  btn.disabled = true;
+
+  try {
+    const { data: candidates, error } = await supabaseClient
+      .from('candidates').select('*')
+      .in('status', ['hired', 'in_person_verified'])
+      .order('last_name', { ascending: true });
+    if (error) throw new Error(error.message);
+    if (!candidates || candidates.length === 0) {
+      resultArea.textContent = 'No hired employees found yet.';
+      btn.disabled = false;
+      return;
+    }
+
+    const zip = new JSZip();
+    let processed = 0;
+
+    for (const candidate of candidates) {
+      processed++;
+      resultArea.textContent = `Processing ${processed} of ${candidates.length}: ${candidate.last_name}, ${candidate.first_name}…`;
+
+      const [
+        { data: application }, { data: i9s1 }, { data: i9s2 }, { data: w4 },
+        { data: it2104 }, { data: ctw4 }, { data: njw4 }
+      ] = await Promise.all([
+        supabaseClient.from('applications').select('*').eq('candidate_id', candidate.id).single(),
+        supabaseClient.from('i9_section1').select('*').eq('candidate_id', candidate.id).single(),
+        supabaseClient.from('i9_section2').select('*').eq('candidate_id', candidate.id).single(),
+        supabaseClient.from('w4_federal').select('*').eq('candidate_id', candidate.id).single(),
+        supabaseClient.from('ny_it2104').select('*').eq('candidate_id', candidate.id).single(),
+        supabaseClient.from('ct_w4').select('*').eq('candidate_id', candidate.id).single(),
+        supabaseClient.from('nj_w4').select('*').eq('candidate_id', candidate.id).single()
+      ]);
+
+      const { data: employer } = await supabaseClient.from('company_entities').select('*').eq('entity_code', candidate.employing_entity || 'KMC').single();
+
+      const folderName = `${candidate.last_name}_${candidate.first_name}`.replace(/[^a-zA-Z0-9_]/g, '');
+      const folder = zip.folder(folderName);
+
+      try {
+        if (i9s1) folder.file('I9.pdf', await fillI9(candidate, i9s1, i9s2, employer, candidate.id));
+      } catch (e) { console.warn(`I-9 failed for ${folderName}:`, e.message); }
+
+      try {
+        if (w4) folder.file('W4.pdf', await fillW4(candidate, w4, i9s1, application, employer));
+      } catch (e) { console.warn(`W-4 failed for ${folderName}:`, e.message); }
+
+      try {
+        if (it2104) folder.file('IT2104.pdf', await fillIT2104(candidate, it2104, i9s1, application, employer));
+        else if (ctw4) folder.file('CTW4.pdf', await fillCTW4(candidate, ctw4, i9s1, application, employer));
+        else if (njw4) folder.file('NJW4.pdf', await fillNJW4(candidate, njw4, i9s1, application, employer));
+      } catch (e) { console.warn(`State form failed for ${folderName}:`, e.message); }
+    }
+
+    resultArea.textContent = 'Packaging ZIP file…';
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `Kencal_Employee_Forms_${new Date().toISOString().slice(0,10)}.zip`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    resultArea.textContent = `✓ Done — ${candidates.length} employee(s) exported.`;
+  } catch (err) {
+    resultArea.textContent = 'Error: ' + (err.message || String(err));
+  }
+  btn.disabled = false;
+});
 </script>
 
 </body>
