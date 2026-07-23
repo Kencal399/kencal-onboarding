@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kencal — Official Government Forms</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<style>
+  :root { --navy:#1A2744; --navy-light:#24345a; --gold:#C8A84B; --gold-light:#ddc47f; --paper:#F7F5F1; --ink:#22242b; --ink-soft:#5b5f6b; --line:#dcd9d2; --warn:#b23b3b; --ok:#2e7d4f; --radius:10px; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:'Segoe UI',-apple-system,sans-serif; }
+  .topbar { background:var(--navy); color:#fff; padding:18px 22px; }
+  .topbar .brand { font-weight:700; font-size:15px; letter-spacing:0.02em; }
+  .topbar .brand span { color:var(--gold-light); }
+  .wrap { max-width:640px; margin:0 auto; padding:20px 18px 60px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+  .card h2 { margin:0 0 4px; font-size:15px; color:var(--navy); }
+  .card .sub { margin:0 0 14px; font-size:12.5px; color:var(--ink-soft); }
+  .lang-gate { text-align:center; padding:30px 20px; }
+  .lang-gate h1 { font-size:18px; color:var(--navy); margin-bottom:8px; }
+  .gate-btn { display:block; width:100%; max-width:320px; margin:0 auto 10px; padding:14px; border:2px solid var(--navy); border-radius:10px; background:#fff; color:var(--navy); font-size:15px; font-weight:600; cursor:pointer; }
+  .gate-btn:hover { background:var(--navy); color:#fff; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+  .field input, .field select { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; }
+
+  .doc-row {
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-bottom:10px;
+  }
+  .doc-row .doc-name { font-weight:600; color:var(--navy); font-size:14.5px; }
+  .doc-row .doc-status { font-size:12px; color:var(--ink-soft); margin-top:2px; }
+  .dl-btn {
+    background:var(--navy); color:#fff; border:none; border-radius:8px; padding:10px 18px;
+    font-size:13.5px; font-weight:600; cursor:pointer; white-space:nowrap;
+  }
+  .dl-btn:hover { background:var(--navy-light); }
+  .dl-btn:disabled { background:var(--line); color:var(--ink-soft); cursor:not-allowed; }
+  .status-ok { color:var(--ok); }
+  .status-missing { color:var(--warn); }
+  #resultArea { margin-top:10px; font-size:13px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">KENCAL <span>ONBOARDING</span></div>
+</div>
+
+<div class="wrap">
+
+  <div class="card" id="loginGateCard">
+    <div class="lang-gate">
+      <h1>Staff Login</h1>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 10px;"><label>Email</label><input type="email" id="login_email"></div>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 16px;"><label>Password</label><input type="password" id="login_password"></div>
+      <button class="gate-btn" id="loginBtn">Log in</button>
+      <p id="loginStatus" class="sub" style="margin-top:10px"></p>
+    </div>
+  </div>
+
+  <div class="card" id="candidateGateCard" style="display:none">
+    <h2>Select an employee</h2>
+    <p class="sub">Download the actual official PDF forms, filled with this person's data.</p>
+    <select id="candidateSelect" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
+      <option value="">Loading…</option>
+    </select>
+  </div>
+
+  <div id="docsArea" style="display:none"></div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://guxemrdukpiqpawskapv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6UwA2vBI-Bw-2Kndb198hg_LkQ0vpJF';
+let supabaseClient;
+try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
+catch (err) { document.getElementById('loginStatus').textContent = 'Setup error: ' + (err.message || String(err)); }
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('login_email').value.trim();
+  const password = document.getElementById('login_password').value;
+  const loginStatus = document.getElementById('loginStatus');
+  loginStatus.textContent = 'Logging in…';
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) { loginStatus.textContent = 'Login failed: ' + error.message; return; }
+    loginStatus.textContent = '';
+    document.getElementById('loginGateCard').style.display = 'none';
+    document.getElementById('candidateGateCard').style.display = 'block';
+    await loadCandidates();
+  } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
+});
+
+async function loadCandidates() {
+  const select = document.getElementById('candidateSelect');
+  const { data, error } = await supabaseClient.from('candidates').select('id, first_name, last_name, status, created_at').order('last_name', { ascending: true }).limit(300);
+  if (error) { select.innerHTML = `<option value="">Error: ${error.message}</option>`; return; }
+  if (!data || data.length === 0) { select.innerHTML = `<option value="">No candidates found</option>`; return; }
+  select.innerHTML = `<option value="">Select…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} — ${c.status}</option>`).join('');
+}
+
+document.getElementById('candidateSelect').addEventListener('change', (e) => loadDocs(e.target.value));
+
+// ============================================================================
+// Date helpers — our DB stores dates as ISO (YYYY-MM-DD); every government
+// form needs MM/DD/YYYY.
+// ============================================================================
+function fmtDate(iso) {
+  if (!iso) return '';
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[2]}/${m[3]}/${m[1]}` : iso;
+}
+
+const CITIZENSHIP_CHECKBOX = { us_citizen: 'CB_1', noncitizen_national: 'CB_2', lawful_permanent_resident: 'CB_3', alien_authorized_to_work: 'CB_4' };
+const FED_FILING_STATUS_CHECKBOX = { single: 0, married_filing_jointly: 1, head_of_household: 2 };
+const NJ_FILING_STATUS_CHOICE = { single: '/Choice1', married_joint: '/Choice2', married_separate: '/Choice3', head_of_household: '/Choice4', qualifying_widow_er: '/Choice5' };
+const IT2104_STATUS_CHOICE = { single_or_hoh: '/Single/HOH', married: '/Married', married_withhold_higher_single: '/Higher Rate' };
+
+async function fetchTemplateBytes(path) {
+  const resp = await fetch(path);
+  if (!resp.ok) throw new Error(`Could not load template ${path} (${resp.status})`);
+  return await resp.arrayBuffer();
+}
+
+function safeSetText(form, fieldName, value) {
+  if (value === null || value === undefined || value === '') return;
+  try { form.getTextField(fieldName).setText(String(value)); }
+  catch (e) { console.warn(`Could not set text field "${fieldName}":`, e.message); }
+}
+function safeCheck(form, fieldName, shouldCheck) {
+  try { const cb = form.getCheckBox(fieldName); if (shouldCheck) cb.check(); }
+  catch (e) { console.warn(`Could not set checkbox "${fieldName}":`, e.message); }
+}
+function safeSelectRadio(form, fieldName, value) {
+  if (!value) return;
+  try { form.getRadioGroup(fieldName).select(value); }
+  catch (e) { console.warn(`Could not select radio "${fieldName}":`, e.message); }
+}
+function safeSelectDropdown(form, fieldName, value) {
+  if (!value) return;
+  try { form.getDropdown(fieldName).select(value); }
+  catch (e) { console.warn(`Could not select dropdown "${fieldName}":`, e.message); }
+}
+
+function downloadBytes(bytes, filename) {
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================================
+// Each fill function takes the raw record(s) from Supabase and returns
+// filled PDF bytes, ready to download.
+// ============================================================================
+
+async function fillI9(candidate, i9s1, i9s2, employer) {
+  const bytes = await fetchTemplateBytes('i9-blank.pdf');
+  const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+  const form = pdfDoc.getForm();
+
+  if (i9s1) {
+    safeSetText(form, 'First Name Given Name', candidate.first_name);
+    safeSetText(form, 'Employee Middle Initial (if any)', candidate.middle_name);
+    safeSetText(form, 'Last Name (Family Name)', candidate.last_name);
+    safeSetText(form, 'Employee Other Last Names Used (if any)', i9s1.other_last_names);
+    safeSetText(form, 'Address Street Number and Name', i9s1.address);
+    safeSetText(form, 'Apt Number (if any)', i9s1.address_2);
+    safeSetText(form, 'City or Town', i9s1.city);
+    safeSelectDropdown(form, 'State', i9s1.state);
+    safeSetText(form, 'ZIP Code', i9s1.zip);
+    safeSetText(form, 'Telephone Number', i9s1.phone);
+    safeSetText(form, 'Date of Birth mmddyyyy', fmtDate(i9s1.date_of_birth));
+    safeSetText(form, 'Employees E-mail Address', i9s1.email);
+    safeSetText(form, 'US Social Security Number', i9s1.ssn);
+
+    const cbName = CITIZENSHIP_CHECKBOX[i9s1.citizenship_status];
+    if (cbName) safeCheck(form, cbName, true);
+    if (i9s1.citizenship_status === 'lawful_permanent_resident') {
+      safeSetText(form, '3 A lawful permanent resident Enter USCIS or ANumber', i9s1.alien_uscis_number);
+    }
+    if (i9s1.citizenship_status === 'alien_authorized_to_work') {
+      safeSetText(form, 'Exp Date mmddyyyy', fmtDate(i9s1.work_authorization_expiration));
+      safeSetText(form, 'USCIS ANumber', i9s1.alien_uscis_number);
+    }
+    safeSetText(form, "Today's Date mmddyyy", fmtDate(i9s1.form_date));
+    safeSetText(form, 'Signature of Employee', i9s1.signature_data);
+  }
+
+  if (i9s2) {
+    const isListBC = !!i9s2.list_c_document_title;
+    if (isListBC) {
+      safeSetText(form, 'List B Document 1 Title', i9s2.document_title);
+      safeSetText(form, 'List B Issuing Authority 1', i9s2.issuing_authority);
+      safeSetText(form, 'List B Document Number 1', i9s2.document_number);
+      safeSetText(form, 'List B Expiration Date 1', fmtDate(i9s2.expiration_date));
+      safeSetText(form, 'List C Document Title 1', i9s2.list_c_document_title);
+      safeSetText(form, 'List C Issuing Authority 1', i9s2.list_c_issuing_authority);
+      safeSetText(form, 'List C Document Number 1', i9s2.list_c_document_number);
+      safeSetText(form, 'List C Expiration Date 1', fmtDate(i9s2.list_c_expiration_date));
+    } else {
+      safeSetText(form, 'Document Title 1', i9s2.document_title);
+      safeSetText(form, 'Issuing Authority 1', i9s2.issuing_authority);
+      safeSetText(form, 'Document Number 0 (if any)', i9s2.document_number);
+      safeSetText(form, 'Expiration Date if any', fmtDate(i9s2.expiration_date));
+    }
+    safeSetText(form, 'FirstDayEmployed mmddyyyy', fmtDate(candidate.start_date));
+    safeSetText(form, 'Last Name First Name and Title of Employer or Authorized Representative', (i9s2.supervisor_signature || '') + ' - Kencal Representative');
+    safeSetText(form, 'Signature of Employer or AR', i9s2.supervisor_signature);
+    safeSetText(form, 'S2 Todays Date mmddyyyy', fmtDate(i9s2.form_date));
+  }
+
+  if (employer) {
+    safeSetText(form, 'Employers Business or Org Name', employer.legal_name);
+    safeSetText(form, 'Employers Business or Org Address', employer.address);
+  }
+
+  return await pdfDoc.save();
+}
+
+async function fillW4(candidate, w4, i9s1, application, employer) {
+  const bytes = await fetchTemplateBytes('w4-blank.pdf');
+  const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+  const form = pdfDoc.getForm();
+  const P = 'topmostSubform[0].Page1[0].';
+
+  const ssn = (i9s1 && i9s1.ssn) || (application && application.ssn) || '';
+  const addr = (i9s1 && i9s1.address) || (application && application.street_address) || '';
+  const cityStateZip = i9s1 ? [i9s1.city, i9s1.state, i9s1.zip].filter(Boolean).join(', ') :
+    (application ? [application.city, application.state, application.zip].filter(Boolean).join(', ') : '');
+
+  safeSetText(form, P + 'Step1a[0].f1_01[0]', [candidate.first_name, candidate.middle_name].filter(Boolean).join(' '));
+  safeSetText(form, P + 'Step1a[0].f1_02[0]', candidate.last_name);
+  safeSetText(form, P + 'f1_05[0]', ssn);
+  safeSetText(form, P + 'Step1a[0].f1_03[0]', addr);
+  safeSetText(form, P + 'Step1a[0].f1_04[0]', cityStateZip);
+
+  if (w4) {
+    const statusIdx = FED_FILING_STATUS_CHECKBOX[w4.filing_status];
+    if (statusIdx !== undefined) safeCheck(form, P + `c1_1[${statusIdx}]`, true);
+    safeCheck(form, P + 'c1_2[0]', !!w4.multiple_jobs_checkbox);
+    safeSetText(form, P + 'Step3_ReadOrder[0].f1_06[0]', (w4.qualifying_children_count || 0) * 2200 || '');
+    safeSetText(form, P + 'Step3_ReadOrder[0].f1_07[0]', (w4.other_dependents_count || 0) * 500 || '');
+    safeSetText(form, P + 'f1_08[0]', w4.dependents_amount || '');
+    safeSetText(form, P + 'f1_09[0]', w4.other_income || '');
+    safeSetText(form, P + 'f1_10[0]', w4.deductions || '');
+    safeSetText(form, P + 'f1_11[0]', w4.extra_withholding || '');
+    safeCheck(form, P + 'c1_3[0]', !!w4.exempt);
+  }
+
+  // f1_12/13/14 are the "Employers Only" row (Name & Address / First Date
+  // of Employment / EIN) — confirmed by f1_14's exact 10-character limit,
+  // matching the EIN format XX-XXXXXXX. There is no fillable field for the
+  // employee's own Step 5 signature/date on this PDF, matching the same
+  // pattern already found on IT-2104, CT-W4, and NJ-W4 — just a printed
+  // line for a real signature.
+  if (employer) {
+    safeSetText(form, P + 'f1_12[0]', `${employer.legal_name}, ${employer.address}`);
+    safeSetText(form, P + 'f1_13[0]', fmtDate(candidate.start_date));
+    safeSetText(form, P + 'f1_14[0]', employer.ein);
+  }
+
+  return await pdfDoc.save();
+}
+
+async function fillIT2104(candidate, it2104, i9s1, application, employer) {
+  const bytes = await fetchTemplateBytes('ny-it2104-blank.pdf');
+  const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+  const form = pdfDoc.getForm();
+
+  const ssn = (i9s1 && i9s1.ssn) || (application && application.ssn) || '';
+  safeSetText(form, 'First name and middle initial', [candidate.first_name, candidate.middle_name].filter(Boolean).join(' '));
+  safeSetText(form, 'Last name', candidate.last_name);
+  safeSetText(form, 'Your SSN', ssn);
+
+  if (it2104) {
+    safeSelectRadio(form, 'Status', IT2104_STATUS_CHOICE[it2104.filing_status]);
+    safeSelectRadio(form, 'Resident', it2104.nyc_resident ? '/Yes' : '/No');
+    safeSelectRadio(form, 'Resident of Yonkers', it2104.yonkers_resident ? '/Yes' : '/No');
+    safeSetText(form, 'line 1', it2104.total_allowances);
+    safeSetText(form, 'line 3', it2104.additional_withholding);
+    safeSetText(form, 'Date', fmtDate(it2104.form_date));
+  }
+
+  const addr = (i9s1 && i9s1.address) || (application && application.street_address) || '';
+  const apt = (i9s1 && i9s1.address_2) || (application && application.apt_number) || '';
+  const city = (i9s1 && i9s1.city) || (application && application.city) || '';
+  const zip = (i9s1 && i9s1.zip) || (application && application.zip) || '';
+  safeSetText(form, 'Permanent mailing address', addr);
+  safeSetText(form, 'Apartment number', apt);
+  safeSetText(form, 'City, village or post office', city);
+  safeSetText(form, 'State', 'NY');
+  safeSetText(form, 'ZIP code', zip);
+
+  if (employer) {
+    safeSetText(form, "Employer's name and address", employer.legal_name);
+    safeSetText(form, "Employer's name and address-2", employer.address);
+    safeSetText(form, 'EIN', employer.ein);
+  }
+
+  return await pdfDoc.save();
+}
+
+async function fillCTW4(candidate, ctw4, i9s1, application, employer) {
+  const bytes = await fetchTemplateBytes('ct-w4-blank.pdf');
+  const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+  const form = pdfDoc.getForm();
+
+  const ssn = (i9s1 && i9s1.ssn) || (application && application.ssn) || '';
+  const addr = (i9s1 && i9s1.address) || (application && application.street_address) || '';
+  const cityStateZip = i9s1 ? [i9s1.city, i9s1.state, i9s1.zip].filter(Boolean).join(', ') :
+    (application ? [application.city, application.state, application.zip].filter(Boolean).join(', ') : '');
+
+  safeSetText(form, 'First name Ml Last name', [candidate.first_name, candidate.middle_name, candidate.last_name].filter(Boolean).join(' '));
+  safeSetText(form, 'SSN', ssn);
+  safeSetText(form, 'Home address number and street apartment number suite number PO Box', addr);
+  safeSetText(form, 'Citytown State ZIP code', cityStateZip);
+
+  if (ctw4) {
+    safeSetText(form, '1', ctw4.withholding_code);
+    safeSetText(form, '2', ctw4.additional_withholding);
+    safeSetText(form, '3', ctw4.reduced_withholding);
+    safeSetText(form, 'Date', fmtDate(ctw4.form_date));
+  }
+
+  if (employer) {
+    safeSetText(form, 'Text3', employer.legal_name);
+    safeSetText(form, 'Text4', employer.ein);
+    safeSetText(form, 'Employers business address', employer.address);
+  }
+
+  return await pdfDoc.save();
+}
+
+async function fillNJW4(candidate, njw4, i9s1, application, employer) {
+  const bytes = await fetchTemplateBytes('nj-w4-blank.pdf');
+  const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+  const form = pdfDoc.getForm();
+
+  const ssn = (i9s1 && i9s1.ssn) || (application && application.ssn) || '';
+  const addr = (i9s1 && i9s1.address) || (application && application.street_address) || '';
+  const city = (i9s1 && i9s1.city) || (application && application.city) || '';
+  const zip = (i9s1 && i9s1.zip) || (application && application.zip) || '';
+
+  safeSetText(form, '1 SS', ssn);
+  safeSetText(form, 'Name', [candidate.first_name, candidate.middle_name, candidate.last_name].filter(Boolean).join(' '));
+  safeSetText(form, 'Address', addr);
+  // Note: these two fields have confusing auto-generated names from the
+  // original PDF, but are positioned as City and Zip respectively.
+  safeSetText(form, 'Qualifying WidowerSurviving Civil Union Partner', city);
+  safeSetText(form, 'State', 'NJ');
+  safeSetText(form, '3 If you have chosen to use the chart from instruction A enter the appropriate letter here', zip);
+
+  if (njw4) {
+    safeSelectRadio(form, 'Group1', NJ_FILING_STATUS_CHOICE[njw4.filing_status]);
+    // Also confusingly named — positioned as Line 3 (wage chart letter)
+    safeSetText(form, '4 Total number of allowances you are claiming see instructions', njw4.wage_chart_letter);
+    safeSetText(form, '4_2', njw4.total_allowances);
+    safeSetText(form, '5_2', njw4.additional_withholding);
+  }
+
+  // These two fields were originally (incorrectly) assumed to be signature/
+  // date — position-checking against the actual printed labels confirmed
+  // they're really the Employer's Name and Address (left, wide) and
+  // Employer Identification Number (right, narrow) fields instead.
+  if (employer) {
+    safeSetText(form, '6 I claim142 exemption from withholding of NJ Gross Income Tax and I certify that I have met the conditions in the', `${employer.legal_name}, ${employer.address}`);
+    safeSetText(form, '6 I claim exemption from withholding of NJ Gross Income Tax and I certify that I have met the conditions in the', employer.ein);
+  }
+
+  return await pdfDoc.save();
+}
+
+// ============================================================================
+// Main: load everything for the selected candidate, show which forms are
+// ready, wire up each Download button.
+// ============================================================================
+async function loadDocs(candidateId) {
+  if (!candidateId) return;
+  const docsArea = document.getElementById('docsArea');
+  docsArea.style.display = 'block';
+  docsArea.innerHTML = `<div class="card"><p class="sub">Loading…</p></div>`;
+
+  const [
+    { data: candidate }, { data: application }, { data: i9s1 }, { data: i9s2 },
+    { data: w4 }, { data: it2104 }, { data: ctw4 }, { data: njw4 }
+  ] = await Promise.all([
+    supabaseClient.from('candidates').select('*').eq('id', candidateId).single(),
+    supabaseClient.from('applications').select('*').eq('candidate_id', candidateId).single(),
+    supabaseClient.from('i9_section1').select('*').eq('candidate_id', candidateId).single(),
+    supabaseClient.from('i9_section2').select('*').eq('candidate_id', candidateId).single(),
+    supabaseClient.from('w4_federal').select('*').eq('candidate_id', candidateId).single(),
+    supabaseClient.from('ny_it2104').select('*').eq('candidate_id', candidateId).single(),
+    supabaseClient.from('ct_w4').select('*').eq('candidate_id', candidateId).single(),
+    supabaseClient.from('nj_w4').select('*').eq('candidate_id', candidateId).single()
+  ]);
+
+  let employer = null;
+  if (candidate) {
+    const { data: entityData } = await supabaseClient.from('company_entities').select('*').eq('entity_code', candidate.employing_entity || 'KMC').single();
+    employer = entityData;
+  }
+
+  const stateForm = it2104 ? { key: 'it2104', label: 'NY IT-2104', data: it2104 } :
+                    ctw4 ? { key: 'ctw4', label: 'CT-W4', data: ctw4 } :
+                    njw4 ? { key: 'njw4', label: 'NJ-W4', data: njw4 } : null;
+
+  const rows = [
+    { name: 'Form I-9', ready: !!i9s1, action: async () => downloadBytes(await fillI9(candidate, i9s1, i9s2, employer), `I9_${candidate.last_name}.pdf`) },
+    { name: 'Federal W-4', ready: !!w4, action: async () => downloadBytes(await fillW4(candidate, w4, i9s1, application, employer), `W4_${candidate.last_name}.pdf`) },
+  ];
+  if (stateForm) {
+    rows.push({
+      name: stateForm.label, ready: true,
+      action: async () => {
+        let bytes;
+        if (stateForm.key === 'it2104') bytes = await fillIT2104(candidate, it2104, i9s1, application, employer);
+        else if (stateForm.key === 'ctw4') bytes = await fillCTW4(candidate, ctw4, i9s1, application, employer);
+        else bytes = await fillNJW4(candidate, njw4, i9s1, application, employer);
+        downloadBytes(bytes, `${stateForm.label.replace(/\s/g,'_')}_${candidate.last_name}.pdf`);
+      }
+    });
+  } else {
+    rows.push({ name: 'State Withholding Form', ready: false, action: null });
+  }
+
+  docsArea.innerHTML = `
+    <div class="card">
+      <h2>${candidate.last_name}, ${candidate.first_name}</h2>
+      <p class="sub">Each button generates the real official PDF, filled with what's on file, ready to print or save.</p>
+      ${rows.map((r, i) => `
+        <div class="doc-row">
+          <div>
+            <div class="doc-name">${r.name}</div>
+            <div class="doc-status ${r.ready ? 'status-ok' : 'status-missing'}">${r.ready ? '✓ Ready' : 'Not completed yet'}</div>
+          </div>
+          <button class="dl-btn" data-idx="${i}" ${r.ready ? '' : 'disabled'}>Download PDF</button>
+        </div>
+      `).join('')}
+      <div id="resultArea"></div>
+    </div>
+  `;
+
+  rows.forEach((r, i) => {
+    if (!r.ready) return;
+    docsArea.querySelector(`[data-idx="${i}"]`).addEventListener('click', async (e) => {
+      const btn = e.target;
+      const resultArea = document.getElementById('resultArea');
+      btn.disabled = true;
+      resultArea.textContent = `Generating ${r.name}…`;
+      try {
+        await r.action();
+        resultArea.textContent = `✓ ${r.name} downloaded.`;
+      } catch (err) {
+        resultArea.textContent = `Error generating ${r.name}: ` + (err.message || String(err));
+      }
+      btn.disabled = false;
+    });
+  });
+}
+</script>
+
+</body>
+</html>
