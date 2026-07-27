@@ -45,8 +45,9 @@
 </head>
 <body>
 
-<div class="topbar">
+<div class="topbar" style="display:flex; justify-content:space-between; align-items:center;">
   <div class="brand">KENCAL <span>ONBOARDING</span></div>
+  <a href="index.html" style="color:#cfd6e6; font-size:13px; text-decoration:none; border:1px solid #3a4870; border-radius:6px; padding:6px 12px;">🏠 Home</a>
 </div>
 
 <div class="wrap">
@@ -257,7 +258,17 @@ async function fillI9(candidate, i9s1, i9s2, employer, candidateId) {
       safeSetText(form, 'Expiration Date if any', fmtDate(i9s2.expiration_date));
     }
     safeSetText(form, 'FirstDayEmployed mmddyyyy', fmtDate(candidate.start_date));
-    safeSetText(form, 'Last Name First Name and Title of Employer or Authorized Representative', (i9s2.supervisor_signature || '') + ' - Kencal Representative');
+
+    // Use the verifier's real job title, looked up from their profile,
+    // rather than a generic placeholder — USCIS asks for an actual,
+    // verifiable title, not a vague description.
+    let verifierTitle = '';
+    if (i9s2.supervisor_id) {
+      const { data: verifierProfile } = await supabaseClient.from('profiles').select('job_title').eq('id', i9s2.supervisor_id).single();
+      verifierTitle = (verifierProfile && verifierProfile.job_title) || '';
+    }
+    const nameAndTitle = [i9s2.supervisor_signature, verifierTitle].filter(Boolean).join(', ');
+    safeSetText(form, 'Last Name First Name and Title of Employer or Authorized Representative', nameAndTitle);
     safeSetText(form, 'Signature of Employer or AR', i9s2.supervisor_signature);
     safeSetText(form, 'S2 Todays Date mmddyyyy', fmtDate(i9s2.form_date));
   }
