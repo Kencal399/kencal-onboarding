@@ -25,6 +25,7 @@
   .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
   .field { margin-bottom:12px; }
   .field label { display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+  .es-sub { display:block; font-size:11px; font-weight:400; font-style:italic; color:var(--ink-soft); margin-top:1px; }
   .field input, .field select, .field textarea {
     width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; font-family:inherit; background:#fff;
   }
@@ -81,65 +82,65 @@
   </div>
 
   <div class="card" id="formCard">
-    <h2>Employee Information</h2>
-    <p class="sub">Fields shaded gold were pulled from the application on file — check them, and correct anything that's changed.</p>
+    <h2>Employee Information<span class="es-sub">Información del Empleado</span></h2>
+    <p class="sub">Fields shaded gold were pulled from the application on file — check them, and correct anything that's changed.<br><span class="es-sub">Los campos en dorado se tomaron de la solicitud — verifíquelos y corrija lo que haya cambiado.</span></p>
 
     <div class="grid3">
-      <div class="field"><label>First Name <span class="prefilled-tag" id="tag_first">from application</span></label><input type="text" id="legal_first_name"></div>
-      <div class="field"><label>Middle Name <span class="prefilled-tag" id="tag_middle">from application</span></label><input type="text" id="legal_middle_name"></div>
-      <div class="field"><label>Last Name <span class="prefilled-tag" id="tag_last">from application</span></label><input type="text" id="legal_last_name"></div>
+      <div class="field"><label>First Name<span class="es-sub">Nombre</span> <span class="prefilled-tag" id="tag_first">from application</span></label><input type="text" id="legal_first_name"></div>
+      <div class="field"><label>Middle Name<span class="es-sub">Segundo Nombre</span> <span class="prefilled-tag" id="tag_middle">from application</span></label><input type="text" id="legal_middle_name"></div>
+      <div class="field"><label>Last Name<span class="es-sub">Apellido</span> <span class="prefilled-tag" id="tag_last">from application</span></label><input type="text" id="legal_last_name"></div>
     </div>
-    <div class="field"><label>Other Last Names Used (if any)</label><input type="text" id="other_last_names"></div>
+    <div class="field"><label>Other Last Names Used (if any)<span class="es-sub">Otros Apellidos Usados (si aplica)</span></label><input type="text" id="other_last_names"></div>
 
     <div class="grid2">
-      <div class="field"><label>Address <span class="prefilled-tag" id="tag_addr">from application</span></label><input type="text" id="address"></div>
-      <div class="field"><label>Apt/Unit #</label><input type="text" id="address_2"></div>
+      <div class="field"><label>Address<span class="es-sub">Dirección</span> <span class="prefilled-tag" id="tag_addr">from application</span></label><input type="text" id="address"></div>
+      <div class="field"><label>Apt/Unit #<span class="es-sub">Apartamento/Unidad #</span></label><input type="text" id="address_2"></div>
     </div>
     <div class="grid3">
-      <div class="field"><label>City</label><input type="text" id="city"></div>
-      <div class="field"><label>State</label>
+      <div class="field"><label>City<span class="es-sub">Ciudad</span></label><input type="text" id="city"></div>
+      <div class="field"><label>State<span class="es-sub">Estado</span></label>
         <select id="state"><option value="">…</option><option>NY</option><option>NJ</option><option>CT</option><option>RI</option><option>MA</option><option>FL</option></select>
       </div>
-      <div class="field"><label>Zip</label><input type="text" id="zip" maxlength="10"></div>
+      <div class="field"><label>Zip<span class="es-sub">Código Postal</span></label><input type="text" id="zip" maxlength="10"></div>
     </div>
     <div class="grid2">
-      <div class="field"><label>Phone <span class="prefilled-tag" id="tag_phone">from application</span></label><input type="text" id="phone"></div>
-      <div class="field"><label>Email</label><input type="email" id="email"></div>
+      <div class="field"><label>Phone<span class="es-sub">Teléfono</span> <span class="prefilled-tag" id="tag_phone">from application</span></label><input type="text" id="phone"></div>
+      <div class="field"><label>Email<span class="es-sub">Correo Electrónico</span></label><input type="email" id="email"></div>
     </div>
     <div class="grid2">
-      <div class="field"><label>Date of Birth</label><input type="text" id="date_of_birth" data-date-field="1" placeholder="MM/DD/YYYY"></div>
-      <div class="field"><label>Social Security Number <span class="prefilled-tag" id="tag_ssn">from application</span></label><input type="text" id="ssn" placeholder="___-__-____" maxlength="11"></div>
+      <div class="field"><label>Date of Birth<span class="es-sub">Fecha de Nacimiento</span></label><input type="text" id="date_of_birth" data-date-field="1" placeholder="MM/DD/YYYY"></div>
+      <div class="field"><label>Social Security Number<span class="es-sub">Número de Seguro Social</span> <span class="prefilled-tag" id="tag_ssn">from application</span></label><input type="text" id="ssn" placeholder="___-__-____" maxlength="11"></div>
     </div>
   </div>
 
   <div class="card" id="citizenshipCard" style="display:none">
-    <h2>Citizenship / Immigration Status</h2>
-    <p class="sub">I attest, under penalty of perjury, that I am:</p>
+    <h2>Citizenship / Immigration Status<span class="es-sub">Ciudadanía / Estatus Migratorio</span></h2>
+    <p class="sub">I attest, under penalty of perjury, that I am:<br><span class="es-sub">Declaro, bajo pena de perjurio, que soy:</span></p>
 
-    <div class="radio-card"><label><input type="radio" name="citizenship_status" value="us_citizen"> A citizen of the United States</label></div>
-    <div class="radio-card"><label><input type="radio" name="citizenship_status" value="noncitizen_national"> A noncitizen national of the United States</label></div>
+    <div class="radio-card"><label><input type="radio" name="citizenship_status" value="us_citizen"> A citizen of the United States<span class="es-sub">Ciudadano de los Estados Unidos</span></label></div>
+    <div class="radio-card"><label><input type="radio" name="citizenship_status" value="noncitizen_national"> A noncitizen national of the United States<span class="es-sub">Nacional no ciudadano de los Estados Unidos</span></label></div>
     <div class="radio-card">
-      <label><input type="radio" name="citizenship_status" value="lawful_permanent_resident"> A lawful permanent resident</label>
+      <label><input type="radio" name="citizenship_status" value="lawful_permanent_resident"> A lawful permanent resident<span class="es-sub">Residente permanente legal</span></label>
       <div class="conditional-fields" id="lpr_fields">
-        <div class="field"><label>USCIS Number</label><input type="text" id="uscis_number_lpr"></div>
+        <div class="field"><label>USCIS Number<span class="es-sub">Número USCIS</span></label><input type="text" id="uscis_number_lpr"></div>
       </div>
     </div>
     <div class="radio-card">
-      <label><input type="radio" name="citizenship_status" value="alien_authorized_to_work"> An alien authorized to work until the date below</label>
+      <label><input type="radio" name="citizenship_status" value="alien_authorized_to_work"> An alien authorized to work until the date below<span class="es-sub">Extranjero autorizado a trabajar hasta la fecha indicada abajo</span></label>
       <div class="conditional-fields" id="alien_fields">
-        <div class="field"><label>USCIS Number</label><input type="text" id="uscis_number_alien"></div>
-        <div class="field"><label>Work Authorization Expiration Date</label><input type="text" id="work_auth_exp" data-date-field="1" placeholder="MM/DD/YYYY"></div>
+        <div class="field"><label>USCIS Number<span class="es-sub">Número USCIS</span></label><input type="text" id="uscis_number_alien"></div>
+        <div class="field"><label>Work Authorization Expiration Date<span class="es-sub">Fecha de Vencimiento de Autorización de Trabajo</span></label><input type="text" id="work_auth_exp" data-date-field="1" placeholder="MM/DD/YYYY"></div>
       </div>
     </div>
   </div>
 
   <div class="card" id="signCard" style="display:none">
-    <h2>Signature</h2>
+    <h2>Signature<span class="es-sub">Firma</span></h2>
     <div class="sig-box">
-      <div class="field" style="margin-bottom:8px"><label>Type your full legal name to sign</label><input type="text" id="signature_name"></div>
-      <p class="sub" style="margin:0">This records your attestation electronically, with a timestamp kept for our records. The official date on this form is added once your hire is confirmed.</p>
+      <div class="field" style="margin-bottom:8px"><label>Type your full legal name to sign<span class="es-sub">Escriba su nombre legal completo para firmar</span></label><input type="text" id="signature_name"></div>
+      <p class="sub" style="margin:0">This records your attestation electronically, with a timestamp kept for our records. The official date on this form is added once your hire is confirmed.<br><span class="es-sub">Esto registra su declaración electrónicamente, con fecha y hora guardadas en nuestros registros. La fecha oficial se agrega una vez que se confirme su contratación.</span></p>
     </div>
-    <button class="btn" id="submitBtn">Sign & Save I-9 Section 1</button>
+    <button class="btn" id="submitBtn">Sign & Save I-9 Section 1<span class="es-sub" style="color:#cfd6e6;">Firmar y Guardar la Sección 1 del I-9</span></button>
     <div id="resultArea"></div>
   </div>
 
@@ -321,8 +322,8 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   const name = val('signature_name');
   const citizenshipStatus = document.querySelector('input[name="citizenship_status"]:checked')?.value;
 
-  if (!name) { resultArea.innerHTML = '<div class="result-warn">Please type a name to sign.</div>'; return; }
-  if (!citizenshipStatus) { resultArea.innerHTML = '<div class="result-warn">Please select a citizenship/immigration status.</div>'; return; }
+  if (!name) { resultArea.innerHTML = '<div class="result-warn">Please type a name to sign. / Por favor escriba un nombre para firmar.</div>'; return; }
+  if (!citizenshipStatus) { resultArea.innerHTML = '<div class="result-warn">Please select a citizenship/immigration status. / Por favor seleccione un estatus migratorio.</div>'; return; }
   if (!selectedCandidateId) { resultArea.innerHTML = '<div class="result-warn">No candidate selected.</div>'; return; }
 
   let uscisNumber = '';
@@ -361,8 +362,8 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     }, { onConflict: 'candidate_id' });
 
     if (error) throw new Error(error.message);
-    resultArea.innerHTML = `<div class="result-ok">✓ I-9 Section 1 signed by ${name} and saved.</div>
-      <a href="w4-federal.html?candidate_id=${selectedCandidateId}" style="display:block; text-align:center; margin-top:10px; padding:12px; background:var(--navy); color:#fff; border-radius:8px; text-decoration:none; font-weight:600;">Continue to Federal W-4 →</a>`;
+    resultArea.innerHTML = `<div class="result-ok">✓ I-9 Section 1 signed by ${name} and saved. / Firmado y guardado.</div>
+      <a href="w4-federal.html?candidate_id=${selectedCandidateId}" style="display:block; text-align:center; margin-top:10px; padding:12px; background:var(--navy); color:#fff; border-radius:8px; text-decoration:none; font-weight:600;">Continue to Federal W-4 → / Continuar al W-4 Federal →</a>`;
   } catch (err) {
     resultArea.innerHTML = `<div class="result-warn">${err.message || String(err)}</div>`;
   }
