@@ -58,8 +58,9 @@
 </head>
 <body>
 
-<div class="topbar">
+<div class="topbar" style="display:flex; justify-content:space-between; align-items:center;">
   <div class="brand">KENCAL <span>ADMIN</span></div>
+  <a href="index.html" style="color:#cfd6e6; font-size:13px; text-decoration:none; border:1px solid #3a4870; border-radius:6px; padding:6px 12px;">🏠 Home</a>
 </div>
 
 <div class="wrap">
@@ -275,18 +276,21 @@ function renderActionArea(candidate) {
   } else if (candidate.status === 'approved') {
     area.innerHTML = `
       <a class="btn btn-hire" style="text-decoration:none; display:block; text-align:center;" href="i9-section1.html?candidate_id=${candidate.id}">Continue to I-9 Section 1 →</a>
-      <p class="sub" style="margin:14px 0 6px; padding-top:10px; border-top:1px solid var(--line);">Once a real start date is confirmed (this can happen later, administratively):</p>
+      <p class="sub" style="margin-top:10px;">Once the forms and document verification are complete, this candidate will move to "Verified" and you'll be able to confirm their hire date here.</p>
+    `;
+  } else if (candidate.status === 'in_person_verified') {
+    area.innerHTML = `
+      <p class="sub" style="color:var(--ok); font-weight:600; margin-bottom:10px;">✓ Forms complete and documents verified.</p>
+      <p class="sub" style="margin-bottom:6px;">Once a real start date is confirmed:</p>
       <div class="field"><label>Confirmed start date</label><input type="date" id="startDateInput"></div>
       <button class="btn btn-hire" id="hireBtn">Confirm Hire — set date on all forms</button>
     `;
     document.getElementById('hireBtn').addEventListener('click', () => confirmHire(candidate.id));
   } else if (candidate.status === 'hired') {
     area.innerHTML = `
-      <p class="sub">Hire confirmed — all completed forms have been dated.</p>
-      <a class="btn btn-hire" style="text-decoration:none; display:block; text-align:center;" href="i9-section2-verification.html?candidate_id=${candidate.id}">If I-9 Section 2 wasn't done yet, complete it now →</a>
+      <p class="sub" style="color:var(--ok); font-weight:600;">✓ Fully onboarded — hire confirmed, all forms dated.</p>
+      <a class="btn btn-hire" style="text-decoration:none; display:block; text-align:center; margin-top:10px;" href="i9-section2-verification.html?candidate_id=${candidate.id}">If I-9 Section 2 still needs to be done, complete it now →</a>
     `;
-  } else if (candidate.status === 'in_person_verified') {
-    area.innerHTML = `<p class="sub" style="color:var(--ok); font-weight:600;">✓ Fully onboarded.</p>`;
   } else if (candidate.status === 'rejected') {
     area.innerHTML = `<p class="sub">This candidate was rejected.</p>`;
   }
