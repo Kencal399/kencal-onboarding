@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kencal — Reverification Report</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root { --navy:#1A2744; --navy-light:#24345a; --gold:#C8A84B; --gold-light:#ddc47f; --paper:#F7F5F1; --ink:#22242b; --ink-soft:#5b5f6b; --line:#dcd9d2; --warn:#b23b3b; --ok:#2e7d4f; --radius:10px; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:'Segoe UI',-apple-system,sans-serif; }
+  .topbar { background:var(--navy); color:#fff; padding:18px 22px; display:flex; justify-content:space-between; align-items:center; }
+  .topbar .brand { font-weight:700; font-size:15px; letter-spacing:0.02em; }
+  .topbar .brand span { color:var(--gold-light); }
+  .wrap { max-width:760px; margin:0 auto; padding:20px 18px 60px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+  .lang-gate { text-align:center; padding:30px 20px; }
+  .lang-gate h1 { font-size:18px; color:var(--navy); margin-bottom:8px; }
+  .gate-btn { display:block; width:100%; max-width:320px; margin:0 auto 10px; padding:14px; border:2px solid var(--navy); border-radius:10px; background:#fff; color:var(--navy); font-size:15px; font-weight:600; cursor:pointer; }
+  .gate-btn:hover { background:var(--navy); color:#fff; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+  .field input { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; }
+
+  .row {
+    display:grid; grid-template-columns: 1fr 110px 130px 90px; gap:12px; align-items:center;
+    padding:12px 14px; border-radius:8px; margin-bottom:8px; border:1px solid var(--line);
+  }
+  .row.overdue { background:#fbeeee; border-color:#ecc5c5; }
+  .row.urgent { background:#fbf7ea; border-color:#e3d4a8; }
+  .row.ok { background:#fff; }
+  .row .name { font-weight:600; color:var(--navy); font-size:14px; }
+  .row .type { font-size:11.5px; color:var(--ink-soft); }
+  .row .exp { font-size:13.5px; font-weight:600; text-align:right; }
+  .row .exp.overdue-text { color:var(--warn); }
+  .row .exp.urgent-text { color:#8A6A1F; }
+  .row .days { font-size:11.5px; text-align:right; color:var(--ink-soft); }
+  .row .status-tag { font-size:11px; font-weight:700; text-align:center; padding:3px 8px; border-radius:5px; }
+  .status-tag.overdue { background:var(--warn); color:#fff; }
+  .status-tag.urgent { background:var(--gold); color:#fff; }
+  .status-tag.ok { background:#eef7f1; color:var(--ok); }
+  .section-label { font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--ink-soft); margin:20px 0 10px; }
+  .empty-note { font-size:13px; color:var(--ink-soft); font-style:italic; padding:10px 0; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">KENCAL <span>ONBOARDING</span></div>
+  <a href="index.html" style="color:#cfd6e6; font-size:13px; text-decoration:none; border:1px solid #3a4870; border-radius:6px; padding:6px 12px;">🏠 Home</a>
+</div>
+
+<div class="wrap">
+
+  <div class="card" id="loginGateCard">
+    <div class="lang-gate">
+      <h1>Staff Login</h1>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 10px;"><label>Email</label><input type="email" id="login_email"></div>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 16px;"><label>Password</label><input type="password" id="login_password"></div>
+      <button class="gate-btn" id="loginBtn">Log in</button>
+      <p id="loginStatus" class="sub" style="margin-top:10px"></p>
+    </div>
+  </div>
+
+  <div class="card" id="reportCard" style="display:none">
+    <h2 style="margin:0 0 4px; font-size:15px; color:var(--navy);">Work Authorization Reverification Report</h2>
+    <p style="margin:0 0 14px; font-size:12.5px; color:var(--ink-soft);">Everyone whose work authorization has an expiration date on file, soonest first. I-9 Supplement B reverification needs to happen on or before each expiration date.</p>
+    <div id="reportBody"></div>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://guxemrdukpiqpawskapv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6UwA2vBI-Bw-2Kndb198hg_LkQ0vpJF';
+let supabaseClient;
+try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
+catch (err) { document.getElementById('loginStatus').textContent = 'Setup error: ' + (err.message || String(err)); }
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('login_email').value.trim();
+  const password = document.getElementById('login_password').value;
+  const loginStatus = document.getElementById('loginStatus');
+  loginStatus.textContent = 'Logging in…';
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) { loginStatus.textContent = 'Login failed: ' + error.message; return; }
+    loginStatus.textContent = '';
+    document.getElementById('loginGateCard').style.display = 'none';
+    document.getElementById('reportCard').style.display = 'block';
+    await loadReport();
+  } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
+});
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[2]}/${m[3]}/${m[1]}` : iso;
+}
+
+async function loadReport() {
+  const body = document.getElementById('reportBody');
+  body.innerHTML = '<p class="empty-note">Loading…</p>';
+
+  const { data: rows, error } = await supabaseClient
+    .from('i9_section1')
+    .select('candidate_id, work_authorization_expiration, citizenship_status, legal_first_name, legal_last_name, candidates(status)')
+    .eq('citizenship_status', 'alien_authorized_to_work')
+    .not('work_authorization_expiration', 'is', null)
+    .order('work_authorization_expiration', { ascending: true });
+
+  if (error) { body.innerHTML = `<p class="empty-note">Error: ${error.message}</p>`; return; }
+  if (!rows || rows.length === 0) { body.innerHTML = '<p class="empty-note">No one currently has a tracked work authorization expiration date.</p>'; return; }
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const overdue = [], urgent = [], ok = [];
+
+  for (const r of rows) {
+    const expDate = new Date(r.work_authorization_expiration + 'T00:00:00');
+    const daysLeft = Math.round((expDate - today) / 86400000);
+    const item = { ...r, daysLeft };
+    if (daysLeft < 0) overdue.push(item);
+    else if (daysLeft <= 90) urgent.push(item);
+    else ok.push(item);
+  }
+
+  function renderGroup(label, items, cls) {
+    if (items.length === 0) return '';
+    let html = `<div class="section-label">${label} (${items.length})</div>`;
+    html += items.map(r => {
+      const name = `${r.legal_last_name || ''}, ${r.legal_first_name || ''}`;
+      const dayText = r.daysLeft < 0 ? `${Math.abs(r.daysLeft)} days overdue` : `${r.daysLeft} days left`;
+      return `<div class="row ${cls}">
+        <div><div class="name">${name}</div><div class="type">Status: ${(r.candidates && r.candidates.status) || 'unknown'}</div></div>
+        <div class="status-tag ${cls}">${cls === 'overdue' ? 'OVERDUE' : cls === 'urgent' ? 'DUE SOON' : 'OK'}</div>
+        <div class="exp ${cls === 'overdue' ? 'overdue-text' : cls === 'urgent' ? 'urgent-text' : ''}">${fmtDate(r.work_authorization_expiration)}</div>
+        <div class="days">${dayText}</div>
+      </div>`;
+    }).join('');
+    return html;
+  }
+
+  body.innerHTML =
+    renderGroup('Overdue — reverify immediately', overdue, 'overdue') +
+    renderGroup('Due within 90 days', urgent, 'urgent') +
+    renderGroup('Further out', ok, 'ok');
+}
+</script>
+
+</body>
+</html>

@@ -183,11 +183,16 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   }
 });
 
+function last4Ssn(c) {
+  const app = Array.isArray(c.applications) ? c.applications[0] : c.applications;
+  const ssn = app && app.ssn;
+  return ssn ? ssn.slice(-4) : '????';
+}
 async function loadCandidates() {
   const select = document.getElementById('candidateSelect');
   const { data, error } = await supabaseClient
     .from('candidates')
-    .select('id, first_name, last_name, status, created_at')
+    .select('id, first_name, last_name, status, created_at, applications(ssn)')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -200,7 +205,7 @@ async function loadCandidates() {
     return;
   }
   select.innerHTML = `<option value="">Select a candidate…</option>` +
-    data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} — ${c.status}</option>`).join('');
+    data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} (***${last4Ssn(c)}) — ${c.status}</option>`).join('');
 }
 
 async function selectCandidate(candidateId) {

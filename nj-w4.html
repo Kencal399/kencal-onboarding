@@ -21,7 +21,6 @@
   .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
   .field { margin-bottom:12px; }
   .field label { display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:4px; }
-  .es-sub { display:block; font-size:11px; font-weight:400; font-style:italic; color:var(--ink-soft); margin-top:1px; }
   .field input, .field select { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; font-family:inherit; background:#fff; }
   .field input.prefilled { background:#fbf7ea; border-color:var(--gold); }
   .prefilled-tag { font-size:10.5px; color:#8a6a1f; font-weight:600; margin-left:6px; }
@@ -70,57 +69,57 @@
 
   <div class="card" id="formCard">
     <div class="state-warning" id="stateWarning"></div>
-    <h2>Personal Information<span class="es-sub">Información Personal</span></h2>
+    <h2>Personal Information</h2>
     <div class="grid3">
-      <div class="field"><label>First Name<span class="es-sub">Nombre</span> <span class="prefilled-tag" id="tag_first">on file</span></label><input type="text" id="first_name"></div>
-      <div class="field"><label>Middle<span class="es-sub">Segundo Nombre</span></label><input type="text" id="middle_name"></div>
-      <div class="field"><label>Last Name<span class="es-sub">Apellido</span> <span class="prefilled-tag" id="tag_last">on file</span></label><input type="text" id="last_name"></div>
+      <div class="field"><label>First Name <span class="prefilled-tag" id="tag_first">on file</span></label><input type="text" id="first_name"></div>
+      <div class="field"><label>Middle</label><input type="text" id="middle_name"></div>
+      <div class="field"><label>Last Name <span class="prefilled-tag" id="tag_last">on file</span></label><input type="text" id="last_name"></div>
     </div>
     <div class="grid2">
-      <div class="field"><label>Address<span class="es-sub">Dirección</span> <span class="prefilled-tag" id="tag_addr">on file</span></label><input type="text" id="address"></div>
-      <div class="field"><label>SSN<span class="es-sub">Número de Seguro Social</span> <span class="prefilled-tag" id="tag_ssn">on file</span></label><input type="text" id="ssn" maxlength="11"></div>
+      <div class="field"><label>Address <span class="prefilled-tag" id="tag_addr">on file</span></label><input type="text" id="address"></div>
+      <div class="field"><label>SSN <span class="prefilled-tag" id="tag_ssn">on file</span></label><input type="text" id="ssn" maxlength="11"></div>
     </div>
     <div class="grid3">
-      <div class="field"><label>City<span class="es-sub">Ciudad</span></label><input type="text" id="city"></div>
-      <div class="field"><label>State<span class="es-sub">Estado</span></label>
+      <div class="field"><label>City</label><input type="text" id="city"></div>
+      <div class="field"><label>State</label>
         <select id="state"><option value="">…</option><option>NY</option><option>NJ</option><option>CT</option><option>RI</option><option>MA</option><option>FL</option></select>
       </div>
-      <div class="field"><label>Zip<span class="es-sub">Código Postal</span></label><input type="text" id="zip" maxlength="10"></div>
+      <div class="field"><label>Zip</label><input type="text" id="zip" maxlength="10"></div>
     </div>
 
     <div class="field">
-      <label>Filing Status (check only one)<span class="es-sub">Estado Civil (marque solo uno)</span></label>
+      <label>Filing Status (check only one)</label>
       <div class="radio-row">
-        <label class="radio-opt"><input type="radio" name="filing_status" value="single"> Single<span class="es-sub">Soltero(a)</span></label>
-        <label class="radio-opt"><input type="radio" name="filing_status" value="married_joint"> Married/Civil Union Couple Joint<span class="es-sub">Casado(a)/Unión Civil Declarando en Conjunto</span></label>
-        <label class="radio-opt"><input type="radio" name="filing_status" value="married_separate"> Married/Civil Union Partner Separate<span class="es-sub">Casado(a)/Unión Civil Declarando por Separado</span></label>
-        <label class="radio-opt"><input type="radio" name="filing_status" value="head_of_household"> Head of Household<span class="es-sub">Cabeza de Familia</span></label>
-        <label class="radio-opt"><input type="radio" name="filing_status" value="qualifying_widow_er"> Qualifying Widow(er)/Surviving Civil Union Partner<span class="es-sub">Viudo(a) Calificado(a)/Sobreviviente de Unión Civil</span></label>
+        <label class="radio-opt"><input type="radio" name="filing_status" value="single"> Single</label>
+        <label class="radio-opt"><input type="radio" name="filing_status" value="married_joint"> Married/Civil Union Couple Joint</label>
+        <label class="radio-opt"><input type="radio" name="filing_status" value="married_separate"> Married/Civil Union Partner Separate</label>
+        <label class="radio-opt"><input type="radio" name="filing_status" value="head_of_household"> Head of Household</label>
+        <label class="radio-opt"><input type="radio" name="filing_status" value="qualifying_widow_er"> Qualifying Widow(er)/Surviving Civil Union Partner</label>
       </div>
     </div>
 
     <div class="field">
-      <label>Line 3 — Wage Chart letter (optional, see instructions)<span class="es-sub">Línea 3 — Letra de la Tabla de Salarios (opcional, ver instrucciones)</span></label>
+      <label>Line 3 — Wage Chart letter (optional, see instructions)</label>
       <input type="text" id="wage_chart_letter" maxlength="1" style="max-width:100px">
     </div>
     <div class="field">
-      <label>Line 4 — Total number of allowances you are claiming<span class="es-sub">Línea 4 — Número total de exenciones que reclama</span></label>
+      <label>Line 4 — Total number of allowances you are claiming</label>
       <input type="number" id="total_allowances" min="0" value="0">
     </div>
     <div class="field">
-      <label>Line 5 — Additional amount you want deducted from each pay<span class="es-sub">Línea 5 — Cantidad adicional que desea deducir de cada pago</span></label>
+      <label>Line 5 — Additional amount you want deducted from each pay</label>
       <input type="text" id="additional_withholding" placeholder="$0">
     </div>
-    <label class="check-opt"><input type="checkbox" id="exempt"> Line 6 — I claim exemption from withholding of NJ Gross Income Tax and certify I have met the conditions in the instructions<span class="es-sub">Línea 6 — Reclamo exención de retención del Impuesto sobre Ingresos Brutos de NJ y certifico que he cumplido las condiciones en las instrucciones</span></label>
+    <label class="check-opt"><input type="checkbox" id="exempt"> Line 6 — I claim exemption from withholding of NJ Gross Income Tax and certify I have met the conditions in the instructions</label>
   </div>
 
   <div class="card" id="signCard">
-    <h2>Signature<span class="es-sub">Firma</span></h2>
+    <h2>Signature</h2>
     <div class="sig-box">
-      <div class="field" style="margin-bottom:8px"><label>Type your full legal name to sign<span class="es-sub">Escriba su nombre legal completo para firmar</span></label><input type="text" id="signature_name"></div>
-      <p class="sub" style="margin:0">The official date on this form is added once your hire is confirmed.<br><span class="es-sub">La fecha oficial se agrega una vez que se confirme su contratación.</span></p>
+      <div class="field" style="margin-bottom:8px"><label>Type your full legal name to sign</label><input type="text" id="signature_name"></div>
+      <p class="sub" style="margin:0">The official date on this form is added once your hire is confirmed.</p>
     </div>
-    <button class="btn" id="submitBtn">Sign & Save NJ-W4<span class="es-sub" style="color:#cfd6e6;">Firmar y Guardar el NJ-W4</span></button>
+    <button class="btn" id="submitBtn">Sign & Save NJ-W4</button>
     <div id="resultArea"></div>
   </div>
 
@@ -229,8 +228,8 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   const name = val('signature_name');
   const filingStatus = document.querySelector('input[name="filing_status"]:checked')?.value;
 
-  if (!name) { resultArea.innerHTML = '<div class="result-warn">Please type a name to sign. / Por favor escriba un nombre para firmar.</div>'; return; }
-  if (!filingStatus) { resultArea.innerHTML = '<div class="result-warn">Please select a filing status. / Seleccione un estado civil.</div>'; return; }
+  if (!name) { resultArea.innerHTML = '<div class="result-warn">Please type a name to sign.</div>'; return; }
+  if (!filingStatus) { resultArea.innerHTML = '<div class="result-warn">Please select a filing status.</div>'; return; }
   if (!selectedCandidateId) { resultArea.innerHTML = '<div class="result-warn">No candidate selected.</div>'; return; }
 
   resultArea.innerHTML = '<div class="sub">Saving…</div>';
@@ -250,8 +249,8 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     }, { onConflict: 'candidate_id' });
 
     if (error) throw new Error(error.message);
-    resultArea.innerHTML = `<div class="result-ok">✓ NJ-W4 signed by ${name} and saved. / Firmado y guardado.</div>
-      <a href="policies.html?candidate_id=${selectedCandidateId}" style="display:block; text-align:center; margin-top:10px; padding:12px; background:var(--navy); color:#fff; border-radius:8px; text-decoration:none; font-weight:600;">Continue to Policies → / Continuar a Políticas →</a>`;
+    resultArea.innerHTML = `<div class="result-ok">✓ NJ-W4 signed by ${name} and saved.</div>
+      <a href="policies.html?candidate_id=${selectedCandidateId}" style="display:block; text-align:center; margin-top:10px; padding:12px; background:var(--navy); color:#fff; border-radius:8px; text-decoration:none; font-weight:600;">Continue to Policies →</a>`;
   } catch (err) {
     resultArea.innerHTML = `<div class="result-warn">${err.message || String(err)}</div>`;
   }
