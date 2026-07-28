@@ -21,13 +21,17 @@
   .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
   .field { margin-bottom:12px; }
   .field label { display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+  .es-sub { display:block; font-size:11px; font-weight:400; font-style:italic; color:var(--ink-soft); margin-top:1px; }
   .field input, .field select { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; font-family:inherit; background:#fff; }
   .field input.prefilled { background:#fbf7ea; border-color:var(--gold); }
   .prefilled-tag { font-size:10.5px; color:#8a6a1f; font-weight:600; margin-left:6px; }
-  .code-card { border:1px solid var(--line); border-radius:8px; padding:12px; margin-bottom:8px; cursor:pointer; }
+  .code-card { border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:8px; cursor:pointer; transition:border-color .15s ease; }
   .code-card:hover { border-color:var(--gold); }
-  .code-card label { display:flex; align-items:flex-start; gap:10px; font-size:13.5px; cursor:pointer; }
+  .code-card.selected { border-color:var(--navy); border-width:2px; background:#f7f5ee; }
+  .code-card label { display:flex; align-items:flex-start; gap:12px; font-size:13.5px; cursor:pointer; line-height:1.45; }
+  .code-card input[type="radio"] { flex-shrink:0; width:16px; height:16px; margin:2px 0 0; accent-color:var(--navy); cursor:pointer; }
   .code-letter { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; background:var(--navy); color:#fff; border-radius:5px; font-weight:700; font-size:12px; flex-shrink:0; }
+  .code-card .code-text { display:flex; align-items:flex-start; gap:10px; flex:1; }
   .state-warning { background:#fbeeee; border:1px solid #ecc5c5; color:#b23b3b; padding:12px 14px; border-radius:8px; font-size:13px; margin-bottom:14px; display:none; }
   .lang-gate { text-align:center; padding:30px 20px; }
   .lang-gate h1 { font-size:18px; color:var(--navy); margin-bottom:8px; }
@@ -70,44 +74,44 @@
 
   <div class="card" id="formCard">
     <div class="state-warning" id="stateWarning"></div>
-    <h2>Personal Information</h2>
+    <h2>Personal Information<span class="es-sub">Información Personal</span></h2>
     <div class="grid3">
-      <div class="field"><label>First Name <span class="prefilled-tag" id="tag_first">on file</span></label><input type="text" id="first_name"></div>
-      <div class="field"><label>Middle</label><input type="text" id="middle_name"></div>
-      <div class="field"><label>Last Name <span class="prefilled-tag" id="tag_last">on file</span></label><input type="text" id="last_name"></div>
+      <div class="field"><label>First Name<span class="es-sub">Nombre</span> <span class="prefilled-tag" id="tag_first">on file</span></label><input type="text" id="first_name"></div>
+      <div class="field"><label>Middle<span class="es-sub">Segundo Nombre</span></label><input type="text" id="middle_name"></div>
+      <div class="field"><label>Last Name<span class="es-sub">Apellido</span> <span class="prefilled-tag" id="tag_last">on file</span></label><input type="text" id="last_name"></div>
     </div>
     <div class="grid2">
-      <div class="field"><label>Home Address <span class="prefilled-tag" id="tag_addr">on file</span></label><input type="text" id="address"></div>
-      <div class="field"><label>SSN <span class="prefilled-tag" id="tag_ssn">on file</span></label><input type="text" id="ssn" maxlength="11"></div>
+      <div class="field"><label>Home Address<span class="es-sub">Dirección</span> <span class="prefilled-tag" id="tag_addr">on file</span></label><input type="text" id="address"></div>
+      <div class="field"><label>SSN<span class="es-sub">Número de Seguro Social</span> <span class="prefilled-tag" id="tag_ssn">on file</span></label><input type="text" id="ssn" maxlength="11"></div>
     </div>
 
     <div class="field">
-      <label>Line 1 — Withholding Code</label>
-      <div class="code-card"><label><input type="radio" name="withholding_code" value="A"><span class="code-letter">A</span> Married, combined income $100,500 or less (both spouses select A)</label></div>
-      <div class="code-card"><label><input type="radio" name="withholding_code" value="B"><span class="code-letter">B</span> Head of Household, expected income more than $19,000</label></div>
-      <div class="code-card"><label><input type="radio" name="withholding_code" value="C"><span class="code-letter">C</span> Single, expected income more than $15,000; or Married filing jointly, both spouses working, combined income more than $100,500</label></div>
-      <div class="code-card"><label><input type="radio" name="withholding_code" value="D"><span class="code-letter">D</span> Elect the highest level of withholding</label></div>
-      <div class="code-card"><label><input type="radio" name="withholding_code" value="E"><span class="code-letter">E</span> Nonresident — expect no Connecticut income tax liability</label></div>
-      <div class="code-card"><label><input type="radio" name="withholding_code" value="F"><span class="code-letter">F</span> No withholding certificate on file (default — highest withholding)</label></div>
+      <label>Line 1 — Withholding Code<span class="es-sub">Línea 1 — Código de Retención</span></label>
+      <div class="code-card"><label><input type="radio" name="withholding_code" value="A"><span class="code-text"><span class="code-letter">A</span> Married, combined income $100,500 or less (both spouses select A)<span class="es-sub">Casado(a), ingreso combinado de $100,500 o menos (ambos cónyuges seleccionan A)</span></span></label></div>
+      <div class="code-card"><label><input type="radio" name="withholding_code" value="B"><span class="code-text"><span class="code-letter">B</span> Head of Household, expected income more than $19,000<span class="es-sub">Cabeza de Familia, ingreso esperado de más de $19,000</span></span></label></div>
+      <div class="code-card"><label><input type="radio" name="withholding_code" value="C"><span class="code-text"><span class="code-letter">C</span> Single, expected income more than $15,000; or Married filing jointly, both spouses working, combined income more than $100,500<span class="es-sub">Soltero(a), ingreso esperado de más de $15,000; o Casado(a) declarando en conjunto, ambos cónyuges trabajando, ingreso combinado de más de $100,500</span></span></label></div>
+      <div class="code-card"><label><input type="radio" name="withholding_code" value="D"><span class="code-text"><span class="code-letter">D</span> Elect the highest level of withholding<span class="es-sub">Elegir el nivel más alto de retención</span></span></label></div>
+      <div class="code-card"><label><input type="radio" name="withholding_code" value="E"><span class="code-text"><span class="code-letter">E</span> Nonresident — expect no Connecticut income tax liability<span class="es-sub">No residente — no espera tener responsabilidad de impuestos de Connecticut</span></span></label></div>
+      <div class="code-card"><label><input type="radio" name="withholding_code" value="F"><span class="code-text"><span class="code-letter">F</span> No withholding certificate on file (default — highest withholding)<span class="es-sub">Sin certificado de retención en archivo (predeterminado — retención más alta)</span></span></label></div>
     </div>
 
     <div class="field">
-      <label>Line 2 — Additional withholding amount per pay period</label>
+      <label>Line 2 — Additional withholding amount per pay period<span class="es-sub">Línea 2 — Cantidad adicional de retención por período de pago</span></label>
       <input type="text" id="additional_withholding" placeholder="$0">
     </div>
     <div class="field">
-      <label>Line 3 — Reduced withholding amount per pay period (if applicable)</label>
+      <label>Line 3 — Reduced withholding amount per pay period (if applicable)<span class="es-sub">Línea 3 — Cantidad de retención reducida por período de pago (si aplica)</span></label>
       <input type="text" id="reduced_withholding" placeholder="$0">
     </div>
   </div>
 
   <div class="card" id="signCard">
-    <h2>Signature</h2>
+    <h2>Signature<span class="es-sub">Firma</span></h2>
     <div class="sig-box">
-      <div class="field" style="margin-bottom:8px"><label>Type your full legal name to sign</label><input type="text" id="signature_name"></div>
-      <p class="sub" style="margin:0">By signing, you declare under penalty of law that this certificate is true, complete, and correct. The official date is added once your hire is confirmed.</p>
+      <div class="field" style="margin-bottom:8px"><label>Type your full legal name to sign<span class="es-sub">Escriba su nombre legal completo para firmar</span></label><input type="text" id="signature_name"></div>
+      <p class="sub" style="margin:0">By signing, you declare under penalty of law that this certificate is true, complete, and correct. The official date is added once your hire is confirmed.<br><span class="es-sub">Al firmar, declara bajo pena de ley que este certificado es verdadero, completo y correcto. La fecha oficial se agrega una vez que se confirme su contratación.</span></p>
     </div>
-    <button class="btn" id="submitBtn">Sign & Save CT-W4</button>
+    <button class="btn" id="submitBtn">Sign & Save CT-W4<span class="es-sub" style="color:#cfd6e6;">Firmar y Guardar el CT-W4</span></button>
     <div id="resultArea"></div>
   </div>
 
@@ -145,12 +149,17 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
 });
 
+function last4Ssn(c) {
+  const app = Array.isArray(c.applications) ? c.applications[0] : c.applications;
+  const ssn = app && app.ssn;
+  return ssn ? ssn.slice(-4) : '????';
+}
 async function loadCandidates() {
   const select = document.getElementById('candidateSelect');
-  const { data, error } = await supabaseClient.from('candidates').select('id, first_name, last_name, status, created_at').order('created_at', { ascending: false }).limit(50);
+  const { data, error } = await supabaseClient.from('candidates').select('id, first_name, last_name, status, created_at, applications(ssn)').order('created_at', { ascending: false }).limit(50);
   if (error) { select.innerHTML = `<option value="">Error: ${error.message}</option>`; return; }
   if (!data || data.length === 0) { select.innerHTML = `<option value="">No candidates found</option>`; return; }
-  select.innerHTML = `<option value="">Select a candidate…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} — ${c.status}</option>`).join('');
+  select.innerHTML = `<option value="">Select a candidate…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} (***${last4Ssn(c)}) — ${c.status}</option>`).join('');
 }
 
 async function selectCandidate(candidateId) {
@@ -166,9 +175,10 @@ document.getElementById('candidateSelect').addEventListener('change', (e) => sel
 async function loadCandidateData(candidateId) {
   const { data: candidate } = await supabaseClient.from('candidates').select('*').eq('id', candidateId).single();
   const warningEl = document.getElementById('stateWarning');
-  if (candidate && candidate.state && candidate.state !== 'CT') {
+  const effectiveState = candidate ? (candidate.work_state || candidate.state) : null;
+  if (candidate && effectiveState && effectiveState !== 'CT') {
     warningEl.style.display = 'block';
-    warningEl.textContent = `Heads up: this candidate's state on file is ${candidate.state}, not CT. Make sure CT-W4 is actually the right form for them before continuing.`;
+    warningEl.textContent = `Heads up: this candidate's work state on file is ${effectiveState}, not CT. Make sure CT-W4 is actually the right form for them before continuing.`;
   } else {
     warningEl.style.display = 'none';
   }
@@ -183,7 +193,10 @@ async function loadCandidateData(candidateId) {
     setVal('ssn', application.ssn);
   }
   if (existing) {
-    if (existing.withholding_code) { const r = document.querySelector(`input[name="withholding_code"][value="${existing.withholding_code}"]`); if (r) r.checked = true; }
+    if (existing.withholding_code) {
+      const r = document.querySelector(`input[name="withholding_code"][value="${existing.withholding_code}"]`);
+      if (r) { r.checked = true; r.closest('.code-card').classList.add('selected'); }
+    }
     setVal('additional_withholding', existing.additional_withholding);
     setVal('reduced_withholding', existing.reduced_withholding);
   }
@@ -195,6 +208,13 @@ async function loadCandidateData(candidateId) {
     if (el && el.value) el.classList.add('prefilled'); else if (tag) tag.style.display = 'none';
   });
 }
+
+document.querySelectorAll('input[name="withholding_code"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    document.querySelectorAll('.code-card').forEach(card => card.classList.remove('selected'));
+    radio.closest('.code-card').classList.add('selected');
+  });
+});
 
 document.getElementById('ssn').addEventListener('input', (e) => {
   let digits = e.target.value.replace(/\D/g, '').slice(0, 9);
@@ -211,8 +231,8 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   const name = val('signature_name');
   const code = document.querySelector('input[name="withholding_code"]:checked')?.value;
 
-  if (!name) { resultArea.innerHTML = '<div class="result-warn">Please type a name to sign.</div>'; return; }
-  if (!code) { resultArea.innerHTML = '<div class="result-warn">Please select a withholding code.</div>'; return; }
+  if (!name) { resultArea.innerHTML = '<div class="result-warn">Please type a name to sign. / Por favor escriba un nombre para firmar.</div>'; return; }
+  if (!code) { resultArea.innerHTML = '<div class="result-warn">Please select a withholding code. / Seleccione un código de retención.</div>'; return; }
   if (!selectedCandidateId) { resultArea.innerHTML = '<div class="result-warn">No candidate selected.</div>'; return; }
 
   resultArea.innerHTML = '<div class="sub">Saving…</div>';
@@ -230,8 +250,8 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     }, { onConflict: 'candidate_id' });
 
     if (error) throw new Error(error.message);
-    resultArea.innerHTML = `<div class="result-ok">✓ CT-W4 signed by ${name} and saved.</div>
-      <a href="policies.html?candidate_id=${selectedCandidateId}" style="display:block; text-align:center; margin-top:10px; padding:12px; background:var(--navy); color:#fff; border-radius:8px; text-decoration:none; font-weight:600;">Continue to Policies →</a>`;
+    resultArea.innerHTML = `<div class="result-ok">✓ CT-W4 signed by ${name} and saved. / Firmado y guardado.</div>
+      <a href="policies.html?candidate_id=${selectedCandidateId}" style="display:block; text-align:center; margin-top:10px; padding:12px; background:var(--navy); color:#fff; border-radius:8px; text-decoration:none; font-weight:600;">Continue to Policies → / Continuar a Políticas →</a>`;
   } catch (err) {
     resultArea.innerHTML = `<div class="result-warn">${err.message || String(err)}</div>`;
   }

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kencal — Update Employee Tax Info</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root { --navy:#1A2744; --navy-light:#24345a; --gold:#C8A84B; --gold-light:#ddc47f; --paper:#F7F5F1; --ink:#22242b; --ink-soft:#5b5f6b; --line:#dcd9d2; --warn:#b23b3b; --ok:#2e7d4f; --radius:10px; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:'Segoe UI',-apple-system,sans-serif; }
+  .topbar { background:var(--navy); color:#fff; padding:18px 22px; display:flex; justify-content:space-between; align-items:center; }
+  .topbar .brand { font-weight:700; font-size:15px; letter-spacing:0.02em; }
+  .topbar .brand span { color:var(--gold-light); }
+  .wrap { max-width:640px; margin:0 auto; padding:20px 18px 60px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+  .card h2 { margin:0 0 4px; font-size:15px; color:var(--navy); }
+  .card .sub { margin:0 0 14px; font-size:12.5px; color:var(--ink-soft); }
+  .lang-gate { text-align:center; padding:30px 20px; }
+  .lang-gate h1 { font-size:18px; color:var(--navy); margin-bottom:8px; }
+  .gate-btn { display:block; width:100%; max-width:320px; margin:0 auto 10px; padding:14px; border:2px solid var(--navy); border-radius:10px; background:#fff; color:var(--navy); font-size:15px; font-weight:600; cursor:pointer; }
+  .gate-btn:hover { background:var(--navy); color:#fff; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+  .field input, .field select { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .radio-row { display:flex; flex-direction:column; gap:8px; }
+  .radio-opt { display:flex; align-items:flex-start; gap:8px; font-size:13.5px; padding:10px; border:1px solid var(--line); border-radius:8px; }
+  .check-opt { display:flex; align-items:flex-start; gap:8px; font-size:13.5px; padding:10px; border:1px solid var(--line); border-radius:8px; margin-top:10px; }
+  .btn { display:block; width:100%; background:var(--navy); color:#fff; border:none; border-radius:8px; padding:13px; font-size:15px; font-weight:600; cursor:pointer; margin-top:6px; }
+  .btn:hover { background:var(--navy-light); }
+  .result-ok { background:#eef7f1; border:1px solid #bfe3cc; color:#2e7d4f; padding:12px 14px; border-radius:8px; font-size:14px; font-weight:600; margin-top:14px; }
+  .result-warn { background:#fbeeee; border:1px solid #ecc5c5; color:#b23b3b; padding:12px 14px; border-radius:8px; font-size:14px; font-weight:600; margin-top:14px; }
+  .reason-card { border:2px solid var(--line); border-radius:10px; padding:16px; cursor:pointer; margin-bottom:10px; }
+  .reason-card.selected { border-color:var(--navy); background:#f7f5ee; }
+  .reason-card .rtitle { font-weight:700; color:var(--navy); font-size:14.5px; margin-bottom:4px; }
+  .reason-card .rdesc { font-size:12.5px; color:var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">KENCAL <span>ONBOARDING</span></div>
+  <a href="index.html" style="color:#cfd6e6; font-size:13px; text-decoration:none; border:1px solid #3a4870; border-radius:6px; padding:6px 12px;">🏠 Home</a>
+</div>
+
+<div class="wrap">
+
+  <div class="card" id="loginGateCard">
+    <div class="lang-gate">
+      <h1>Staff Login</h1>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 10px;"><label>Email</label><input type="email" id="login_email"></div>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 16px;"><label>Password</label><input type="password" id="login_password"></div>
+      <button class="gate-btn" id="loginBtn">Log in</button>
+      <p id="loginStatus" class="sub" style="margin-top:10px"></p>
+    </div>
+  </div>
+
+  <div class="card" id="candidateGateCard" style="display:none">
+    <h2>Update Employee Tax Info</h2>
+    <p class="sub">For an already-hired employee's W-4 — a correction to what's on file, or a genuine new W-4 from a life change.</p>
+    <select id="candidateSelect" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
+      <option value="">Loading employees…</option>
+    </select>
+  </div>
+
+  <div class="card" id="reasonCard" style="display:none">
+    <h2 id="empName"></h2>
+    <p class="sub">What's this update for?</p>
+    <div class="reason-card" id="reasonCorrection" data-reason="correction">
+      <div class="rtitle">Correction</div>
+      <div class="rdesc">Fixing a typo or mistake in what's already on file — an address, a spelling error, a number entered wrong. This does not change the original signing date.</div>
+    </div>
+    <div class="reason-card" id="reasonLifeChange" data-reason="life_change">
+      <div class="rtitle">New W-4 — Life Change</div>
+      <div class="rdesc">The employee got married, had a child, or otherwise wants to change their actual withholding. This is a genuinely new signed W-4 — the old one is kept on file, and this one gets today's date.</div>
+    </div>
+  </div>
+
+  <div id="formArea" style="display:none"></div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://guxemrdukpiqpawskapv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6UwA2vBI-Bw-2Kndb198hg_LkQ0vpJF';
+let supabaseClient;
+try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
+catch (err) { document.getElementById('loginStatus').textContent = 'Setup error: ' + (err.message || String(err)); }
+
+let selectedCandidateId = null;
+let selectedReason = null;
+let existingW4 = null;
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('login_email').value.trim();
+  const password = document.getElementById('login_password').value;
+  const loginStatus = document.getElementById('loginStatus');
+  loginStatus.textContent = 'Logging in…';
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) { loginStatus.textContent = 'Login failed: ' + error.message; return; }
+    loginStatus.textContent = '';
+    document.getElementById('loginGateCard').style.display = 'none';
+    document.getElementById('candidateGateCard').style.display = 'block';
+    await loadCandidates();
+  } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
+});
+
+function last4Ssn(c) {
+  const app = Array.isArray(c.applications) ? c.applications[0] : c.applications;
+  const ssn = app && app.ssn;
+  return ssn ? ssn.slice(-4) : '????';
+}
+
+async function loadCandidates() {
+  const select = document.getElementById('candidateSelect');
+  const { data, error } = await supabaseClient
+    .from('candidates')
+    .select('id, first_name, last_name, status, applications(ssn)')
+    .eq('status', 'hired')
+    .order('last_name', { ascending: true });
+  if (error) { select.innerHTML = `<option value="">Error: ${error.message}</option>`; return; }
+  if (!data || data.length === 0) { select.innerHTML = `<option value="">No hired employees found yet</option>`; return; }
+  select.innerHTML = `<option value="">Select an employee…</option>` + data.map(c =>
+    `<option value="${c.id}">${c.last_name}, ${c.first_name} (***${last4Ssn(c)})</option>`
+  ).join('');
+}
+
+document.getElementById('candidateSelect').addEventListener('change', async (e) => {
+  selectedCandidateId = e.target.value;
+  if (!selectedCandidateId) return;
+  const { data: candidate } = await supabaseClient.from('candidates').select('*').eq('id', selectedCandidateId).single();
+  const { data: w4 } = await supabaseClient.from('w4_federal').select('*').eq('candidate_id', selectedCandidateId).single();
+  existingW4 = w4 || null;
+
+  document.getElementById('empName').textContent = candidate ? `${candidate.last_name}, ${candidate.first_name}` : 'Employee';
+  document.getElementById('candidateGateCard').style.display = 'none';
+  document.getElementById('reasonCard').style.display = 'block';
+});
+
+document.querySelectorAll('.reason-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.reason-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedReason = card.dataset.reason;
+    buildForm();
+  });
+});
+
+function buildForm() {
+  const area = document.getElementById('formArea');
+  const w4 = existingW4 || {};
+  area.style.display = 'block';
+  area.innerHTML = `
+    <div class="card">
+      <h2>${selectedReason === 'correction' ? 'Correct W-4 Info' : 'New W-4 — Life Change'}</h2>
+      <p class="sub">${selectedReason === 'correction' ? 'The original signing date stays exactly as it was.' : 'This will be saved as a new signed W-4, dated today. The previous version stays on file, not deleted.'}</p>
+
+      <div class="field">
+        <label>Filing Status</label>
+        <div class="radio-row">
+          <label class="radio-opt"><input type="radio" name="filing_status" value="single" ${w4.filing_status === 'single' ? 'checked' : ''}> Single or Married filing separately</label>
+          <label class="radio-opt"><input type="radio" name="filing_status" value="married_filing_jointly" ${w4.filing_status === 'married_filing_jointly' ? 'checked' : ''}> Married filing jointly or Qualifying surviving spouse</label>
+          <label class="radio-opt"><input type="radio" name="filing_status" value="head_of_household" ${w4.filing_status === 'head_of_household' ? 'checked' : ''}> Head of Household</label>
+        </div>
+      </div>
+      <label class="check-opt"><input type="checkbox" id="multiple_jobs_checkbox" ${w4.multiple_jobs_checkbox ? 'checked' : ''}> Multiple jobs / spouse works — only two jobs total checkbox</label>
+
+      <div class="grid2" style="margin-top:14px;">
+        <div class="field"><label>Qualifying children under 17</label><input type="number" id="qualifying_children_count" min="0" value="${w4.qualifying_children_count || 0}"></div>
+        <div class="field"><label>Other dependents</label><input type="number" id="other_dependents_count" min="0" value="${w4.other_dependents_count || 0}"></div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label>4(a) Other income</label><input type="text" id="other_income" value="${w4.other_income || ''}" placeholder="$0"></div>
+        <div class="field"><label>4(b) Deductions</label><input type="text" id="deductions" value="${w4.deductions || ''}" placeholder="$0"></div>
+        <div class="field"><label>4(c) Extra withholding</label><input type="text" id="extra_withholding" value="${w4.extra_withholding || ''}" placeholder="$0"></div>
+      </div>
+      <label class="check-opt"><input type="checkbox" id="exempt" ${w4.exempt ? 'checked' : ''}> Exempt from withholding this year</label>
+
+      <div class="field" style="margin-top:14px;"><label>Type your full legal name to sign</label><input type="text" id="signature_name"></div>
+      <button class="btn" id="saveBtn">Save</button>
+      <div id="resultArea"></div>
+    </div>
+  `;
+
+  document.getElementById('saveBtn').addEventListener('click', saveUpdate);
+}
+
+async function saveUpdate() {
+  const resultArea = document.getElementById('resultArea');
+  const name = document.getElementById('signature_name').value.trim();
+  if (!name) { resultArea.innerHTML = '<div class="result-warn">Please type a name to sign.</div>'; return; }
+
+  const filingStatus = document.querySelector('input[name="filing_status"]:checked')?.value;
+  const children = parseInt(document.getElementById('qualifying_children_count').value) || 0;
+  const others = parseInt(document.getElementById('other_dependents_count').value) || 0;
+  const dependentsAmount = (children * 2200) + (others * 500);
+  const num = (id) => { const v = document.getElementById(id).value.replace(/[^0-9.]/g, ''); return v ? parseFloat(v) : 0; };
+
+  resultArea.innerHTML = '<div class="sub">Saving…</div>';
+
+  try {
+    if (selectedReason === 'life_change' && existingW4) {
+      // Preserve the prior version before overwriting it
+      const { id, ...snapshot } = existingW4;
+      const { error: histErr } = await supabaseClient.from('w4_federal_history').insert({ ...snapshot, reason: 'superseded by new W-4' });
+      if (histErr) throw new Error('Could not archive previous W-4: ' + histErr.message);
+    }
+
+    const nowIso = new Date().toISOString();
+    const todayDate = nowIso.slice(0, 10);
+    const signedAt = selectedReason === 'correction' && existingW4 ? existingW4.signed_at : nowIso;
+    const formDate = selectedReason === 'correction' ? (existingW4 ? existingW4.form_date : null) : todayDate;
+
+    const { error } = await supabaseClient.from('w4_federal').upsert({
+      candidate_id: selectedCandidateId,
+      filing_status: filingStatus,
+      multiple_jobs_checkbox: document.getElementById('multiple_jobs_checkbox').checked,
+      qualifying_children_count: children,
+      other_dependents_count: others,
+      dependents_amount: dependentsAmount,
+      other_income: num('other_income'),
+      deductions: num('deductions'),
+      extra_withholding: num('extra_withholding'),
+      exempt: document.getElementById('exempt').checked,
+      signature_data: name,
+      signed_at: signedAt,
+      form_date: formDate
+    }, { onConflict: 'candidate_id' });
+
+    if (error) throw new Error(error.message);
+
+    resultArea.innerHTML = `<div class="result-ok">✓ Saved. ${selectedReason === 'life_change' ? 'Previous W-4 kept on file, dated today.' : 'Original signing date preserved.'} Don't forget to make the matching update in WinTeam.</div>`;
+  } catch (err) {
+    resultArea.innerHTML = `<div class="result-warn">${err.message || String(err)}</div>`;
+  }
+}
+</script>
+
+</body>
+</html>

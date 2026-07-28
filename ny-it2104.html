@@ -21,6 +21,7 @@
   .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
   .field { margin-bottom:12px; }
   .field label { display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+  .es-sub { display:block; font-size:11px; font-weight:400; font-style:italic; color:var(--ink-soft); margin-top:1px; }
   .field input, .field select { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; font-family:inherit; background:#fff; }
   .field input.prefilled { background:#fbf7ea; border-color:var(--gold); }
   .prefilled-tag { font-size:10.5px; color:#8a6a1f; font-weight:600; margin-left:6px; }
@@ -70,59 +71,59 @@
 
   <div class="card" id="formCard">
     <div class="note" id="stateWarning" style="margin-bottom:14px;"></div>
-    <h2>Personal Information</h2>
+    <h2>Personal Information<span class="es-sub">Información Personal</span></h2>
     <div class="grid3">
-      <div class="field"><label>First Name <span class="prefilled-tag" id="tag_first">on file</span></label><input type="text" id="first_name"></div>
-      <div class="field"><label>MI</label><input type="text" id="middle_name" maxlength="1"></div>
-      <div class="field"><label>Last Name <span class="prefilled-tag" id="tag_last">on file</span></label><input type="text" id="last_name"></div>
+      <div class="field"><label>First Name<span class="es-sub">Nombre</span> <span class="prefilled-tag" id="tag_first">on file</span></label><input type="text" id="first_name"></div>
+      <div class="field"><label>MI<span class="es-sub">Inicial</span></label><input type="text" id="middle_name" maxlength="1"></div>
+      <div class="field"><label>Last Name<span class="es-sub">Apellido</span> <span class="prefilled-tag" id="tag_last">on file</span></label><input type="text" id="last_name"></div>
     </div>
     <div class="grid2">
-      <div class="field"><label>Permanent Home Address <span class="prefilled-tag" id="tag_addr">on file</span></label><input type="text" id="address"></div>
-      <div class="field"><label>SSN <span class="prefilled-tag" id="tag_ssn">on file</span></label><input type="text" id="ssn" maxlength="11"></div>
+      <div class="field"><label>Permanent Home Address<span class="es-sub">Dirección Permanente</span> <span class="prefilled-tag" id="tag_addr">on file</span></label><input type="text" id="address"></div>
+      <div class="field"><label>SSN<span class="es-sub">Número de Seguro Social</span> <span class="prefilled-tag" id="tag_ssn">on file</span></label><input type="text" id="ssn" maxlength="11"></div>
     </div>
 
     <div class="field">
-      <label>Marital Status</label>
+      <label>Marital Status<span class="es-sub">Estado Civil</span></label>
       <div class="radio-row">
-        <label class="radio-opt"><input type="radio" name="filing_status" value="single_or_hoh"> Single or Head of Household</label>
-        <label class="radio-opt"><input type="radio" name="filing_status" value="married"> Married</label>
-        <label class="radio-opt"><input type="radio" name="filing_status" value="married_withhold_higher_single"> Married, but withhold at higher Single rate</label>
+        <label class="radio-opt"><input type="radio" name="filing_status" value="single_or_hoh"> Single or Head of Household<span class="es-sub">Soltero(a) o Cabeza de Familia</span></label>
+        <label class="radio-opt"><input type="radio" name="filing_status" value="married"> Married<span class="es-sub">Casado(a)</span></label>
+        <label class="radio-opt"><input type="radio" name="filing_status" value="married_withhold_higher_single"> Married, but withhold at higher Single rate<span class="es-sub">Casado(a), pero retener a la tasa más alta de Soltero(a)</span></label>
       </div>
     </div>
 
     <div class="field">
-      <label>Do you live in New York City?</label>
+      <label>Do you live in New York City?<span class="es-sub">¿Vive usted en la Ciudad de Nueva York?</span></label>
       <div class="yn-row">
-        <label class="yn-opt"><input type="radio" name="nyc_resident" value="yes"> Yes</label>
-        <label class="yn-opt"><input type="radio" name="nyc_resident" value="no" checked> No</label>
+        <label class="yn-opt"><input type="radio" name="nyc_resident" value="yes"> Yes<span class="es-sub">Sí</span></label>
+        <label class="yn-opt"><input type="radio" name="nyc_resident" value="no" checked> No<span class="es-sub">No</span></label>
       </div>
     </div>
     <div class="field">
-      <label>Do you live in Yonkers?</label>
+      <label>Do you live in Yonkers?<span class="es-sub">¿Vive usted en Yonkers?</span></label>
       <div class="yn-row">
-        <label class="yn-opt"><input type="radio" name="yonkers_resident" value="yes"> Yes</label>
-        <label class="yn-opt"><input type="radio" name="yonkers_resident" value="no" checked> No</label>
+        <label class="yn-opt"><input type="radio" name="yonkers_resident" value="yes"> Yes<span class="es-sub">Sí</span></label>
+        <label class="yn-opt"><input type="radio" name="yonkers_resident" value="no" checked> No<span class="es-sub">No</span></label>
       </div>
     </div>
 
     <div class="field" style="margin-top:16px">
-      <label>Total number of allowances claimed (Line 1)</label>
+      <label>Total number of allowances claimed (Line 1)<span class="es-sub">Número total de exenciones reclamadas (Línea 1)</span></label>
       <input type="number" id="total_allowances" min="0" value="0">
-      <div class="note" id="allowanceNote">Claiming more than 14 allowances requires sending a copy of this certificate to the NY Tax Department — flag this with Rick before finalizing.</div>
+      <div class="note" id="allowanceNote">Claiming more than 14 allowances requires sending a copy of this certificate to the NY Tax Department — flag this with Rick before finalizing.<span class="es-sub">Reclamar más de 14 exenciones requiere enviar una copia de este certificado al Departamento de Impuestos de NY — avísele a Rick antes de finalizar.</span></div>
     </div>
     <div class="field">
-      <label>Additional dollar amount to withhold per pay period (Line 2)</label>
+      <label>Additional dollar amount to withhold per pay period (Line 2)<span class="es-sub">Cantidad adicional a retener por período de pago (Línea 2)</span></label>
       <input type="text" id="additional_withholding" placeholder="$0">
     </div>
   </div>
 
   <div class="card" id="signCard">
-    <h2>Signature</h2>
+    <h2>Signature<span class="es-sub">Firma</span></h2>
     <div class="sig-box">
-      <div class="field" style="margin-bottom:8px"><label>Type your full legal name to sign</label><input type="text" id="signature_name"></div>
-      <p class="sub" style="margin:0">The official date on this form is added once your hire is confirmed.</p>
+      <div class="field" style="margin-bottom:8px"><label>Type your full legal name to sign<span class="es-sub">Escriba su nombre legal completo para firmar</span></label><input type="text" id="signature_name"></div>
+      <p class="sub" style="margin:0">The official date on this form is added once your hire is confirmed.<br><span class="es-sub">La fecha oficial se agrega una vez que se confirme su contratación.</span></p>
     </div>
-    <button class="btn" id="submitBtn">Sign & Save IT-2104</button>
+    <button class="btn" id="submitBtn">Sign & Save IT-2104<span class="es-sub" style="color:#cfd6e6;">Firmar y Guardar el IT-2104</span></button>
     <div id="resultArea"></div>
   </div>
 
@@ -160,12 +161,17 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
 });
 
+function last4Ssn(c) {
+  const app = Array.isArray(c.applications) ? c.applications[0] : c.applications;
+  const ssn = app && app.ssn;
+  return ssn ? ssn.slice(-4) : '????';
+}
 async function loadCandidates() {
   const select = document.getElementById('candidateSelect');
-  const { data, error } = await supabaseClient.from('candidates').select('id, first_name, last_name, status, created_at').order('created_at', { ascending: false }).limit(50);
+  const { data, error } = await supabaseClient.from('candidates').select('id, first_name, last_name, status, created_at, applications(ssn)').order('created_at', { ascending: false }).limit(50);
   if (error) { select.innerHTML = `<option value="">Error: ${error.message}</option>`; return; }
   if (!data || data.length === 0) { select.innerHTML = `<option value="">No candidates found</option>`; return; }
-  select.innerHTML = `<option value="">Select a candidate…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} — ${c.status}</option>`).join('');
+  select.innerHTML = `<option value="">Select a candidate…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} (***${last4Ssn(c)}) — ${c.status}</option>`).join('');
 }
 
 async function selectCandidate(candidateId) {
@@ -181,9 +187,10 @@ document.getElementById('candidateSelect').addEventListener('change', (e) => sel
 async function loadCandidateData(candidateId) {
   const { data: candidate } = await supabaseClient.from('candidates').select('*').eq('id', candidateId).single();
   const warningEl = document.getElementById('stateWarning');
-  if (candidate && candidate.state && candidate.state !== 'NY') {
+  const effectiveState = candidate ? (candidate.work_state || candidate.state) : null;
+  if (candidate && effectiveState && effectiveState !== 'NY') {
     warningEl.style.display = 'block';
-    warningEl.textContent = `Heads up: this candidate's state on file is ${candidate.state}, not NY. Make sure IT-2104 is actually the right form for them before continuing.`;
+    warningEl.textContent = `Heads up: this candidate's work state on file is ${effectiveState}, not NY. Make sure IT-2104 is actually the right form for them before continuing.`;
   } else {
     warningEl.style.display = 'none';
   }
@@ -232,8 +239,8 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   const name = val('signature_name');
   const filingStatus = document.querySelector('input[name="filing_status"]:checked')?.value;
 
-  if (!name) { resultArea.innerHTML = '<div class="result-warn">Please type a name to sign.</div>'; return; }
-  if (!filingStatus) { resultArea.innerHTML = '<div class="result-warn">Please select a marital status.</div>'; return; }
+  if (!name) { resultArea.innerHTML = '<div class="result-warn">Please type a name to sign. / Por favor escriba un nombre para firmar.</div>'; return; }
+  if (!filingStatus) { resultArea.innerHTML = '<div class="result-warn">Please select a marital status. / Seleccione un estado civil.</div>'; return; }
   if (!selectedCandidateId) { resultArea.innerHTML = '<div class="result-warn">No candidate selected.</div>'; return; }
 
   resultArea.innerHTML = '<div class="sub">Saving…</div>';
@@ -253,8 +260,8 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     }, { onConflict: 'candidate_id' });
 
     if (error) throw new Error(error.message);
-    resultArea.innerHTML = `<div class="result-ok">✓ IT-2104 signed by ${name} and saved.</div>
-      <a href="policies.html?candidate_id=${selectedCandidateId}" style="display:block; text-align:center; margin-top:10px; padding:12px; background:var(--navy); color:#fff; border-radius:8px; text-decoration:none; font-weight:600;">Continue to Policies →</a>`;
+    resultArea.innerHTML = `<div class="result-ok">✓ IT-2104 signed by ${name} and saved. / Firmado y guardado.</div>
+      <a href="policies.html?candidate_id=${selectedCandidateId}" style="display:block; text-align:center; margin-top:10px; padding:12px; background:var(--navy); color:#fff; border-radius:8px; text-decoration:none; font-weight:600;">Continue to Policies → / Continuar a Políticas →</a>`;
   } catch (err) {
     resultArea.innerHTML = `<div class="result-warn">${err.message || String(err)}</div>`;
   }
