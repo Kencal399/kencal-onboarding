@@ -58,6 +58,7 @@
   .list-badge.c { background: #eef7f1; color: var(--ok); }
 
   .mode-options { display: flex; flex-direction: column; gap: 10px; }
+  .es-sub { display:block; font-size:11px; font-weight:400; font-style:italic; color:var(--ink-soft); margin-top:1px; }
   .lang-gate { text-align:center; padding:30px 20px; }
   .lang-gate h1 { font-size:18px; color:var(--navy); margin-bottom:8px; }
   .gate-btn { display:block; width:100%; max-width:320px; margin:0 auto 10px; padding:14px; border:2px solid var(--navy); border-radius:10px; background:#fff; color:var(--navy); font-size:15px; font-weight:600; cursor:pointer; }
@@ -193,21 +194,21 @@
   </div>
 
   <div class="card">
-    <h2>Step 1 — How many documents is the employee showing you?</h2>
-    <p class="sub">Look at what's in your hand, then pick one of these two.</p>
+    <h2>Step 1 — How many documents is the employee showing you?<span class="es-sub">Paso 1 — ¿Cuántos documentos le muestra el empleado?</span></h2>
+    <p class="sub">Look at what's in your hand, then pick one of these two.<br><span class="es-sub">Mire lo que tiene en la mano, luego elija una de estas dos opciones.</span></p>
     <div class="mode-options">
       <label class="mode-option">
         <input type="radio" name="docMode" value="listA">
         <div>
-          <div class="mo-title">One single document</div>
-          <div class="mo-sub">Examples: Green Card, Work Permit / Employment Authorization Card, U.S. Passport. This one document is enough by itself — no second document needed.</div>
+          <div class="mo-title">One single document<span class="es-sub">Un solo documento</span></div>
+          <div class="mo-sub">Examples: Green Card, Work Permit / Employment Authorization Card, U.S. Passport. This one document is enough by itself — no second document needed.<br><span class="es-sub">Ejemplos: Green Card, Permiso de Trabajo, Pasaporte de EE. UU. Este documento es suficiente por sí solo — no se necesita un segundo documento.</span></div>
         </div>
       </label>
       <label class="mode-option">
         <input type="radio" name="docMode" value="listBC">
         <div>
-          <div class="mo-title">Two separate documents</div>
-          <div class="mo-sub">Examples: a Driver's License or State ID (proves who they are) PLUS a Social Security Card or Birth Certificate (proves they can work). Neither one alone is enough — you need both together.</div>
+          <div class="mo-title">Two separate documents<span class="es-sub">Dos documentos separados</span></div>
+          <div class="mo-sub">Examples: a Driver's License or State ID (proves who they are) PLUS a Social Security Card or Birth Certificate (proves they can work). Neither one alone is enough — you need both together.<br><span class="es-sub">Ejemplos: una Licencia de Conducir o Identificación Estatal (prueba quién es) MÁS una Tarjeta de Seguro Social o Acta de Nacimiento (prueba que puede trabajar). Ninguno por sí solo es suficiente — necesita ambos juntos.</span></div>
         </div>
       </label>
     </div>
@@ -217,15 +218,16 @@
   <div id="panelContainer"></div>
 
   <div class="card" id="confirmCard" style="display:none">
-    <h2>Final step — Verify in person</h2>
+    <h2>Final step — Verify in person<span class="es-sub">Paso final — Verificar en persona</span></h2>
     <div class="confirm-banner">
       By confirming below, you attest that <strong>you personally examined the physical document(s)</strong> the employee handed you, and that they reasonably appear genuine and match the person presenting them.
+      <br><span class="es-sub">Al confirmar abajo, usted declara que <strong>examinó personalmente el/los documento(s) físico(s)</strong> que el empleado le entregó, y que razonablemente parecen genuinos y corresponden a la persona que los presenta.</span>
     </div>
     <div class="btn-row">
-      <button class="btn btn-primary" id="confirmMatchBtn">✓ Matches — Sign &amp; Verify</button>
+      <button class="btn btn-primary" id="confirmMatchBtn">✓ Matches — Sign & Verify<span class="es-sub" style="color:#cfd6e6;">Coincide — Firmar y Verificar</span></button>
     </div>
     <div class="btn-row">
-      <button class="btn btn-ghost" id="flagBtn">⚑ Doesn't match — Flag for Rick</button>
+      <button class="btn btn-ghost" id="flagBtn">⚑ Doesn't match — Flag for Rick<span class="es-sub">No coincide — Avisar a Rick</span></button>
     </div>
     <div id="resultArea" style="margin-top:14px"></div>
   </div>
@@ -277,17 +279,22 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
 });
 
+function last4Ssn(c) {
+  const app = Array.isArray(c.applications) ? c.applications[0] : c.applications;
+  const ssn = app && app.ssn;
+  return ssn ? ssn.slice(-4) : '????';
+}
 async function loadCandidates() {
   const select = document.getElementById('candidateSelect');
   const { data, error } = await supabaseClient
     .from('candidates')
-    .select('id, first_name, last_name, state, site_id, start_date, status')
+    .select('id, first_name, last_name, state, site_id, start_date, status, applications(ssn)')
     .in('status', ['approved', 'hired'])
     .order('approved_at', { ascending: false });
   if (error) { select.innerHTML = `<option value="">Error: ${error.message}</option>`; return; }
   if (!data || data.length === 0) { select.innerHTML = `<option value="">No one is approved and ready for document verification yet</option>`; return; }
   select.innerHTML = `<option value="">Select a candidate…</option>` + data.map(c =>
-    `<option value="${c.id}">${c.last_name}, ${c.first_name}</option>`
+    `<option value="${c.id}">${c.last_name}, ${c.first_name} (***${last4Ssn(c)})</option>`
   ).join('');
 }
 
@@ -307,72 +314,72 @@ document.getElementById('candidateSelect').addEventListener('change', (e) => sel
 
 const DOC_CONFIG = {
   resident_card: {
-    label: 'Permanent Resident Card (Green Card)', list: 'A',
+    label: 'Permanent Resident Card (Green Card) / Tarjeta de Residente Permanente', list: 'A',
     issuingAuthorityOptions: ['U.S. Department of Homeland Security'],
     hasExpiration: true, hasDOB: true,
     numberFields: [
-      { key: 'uscis_number', label: 'USCIS Number', goesTo: ['s1','s2'],
+      { key: 'uscis_number', label: 'USCIS Number / Número USCIS', goesTo: ['s1','s2'],
         note: 'This single number is recorded in BOTH Section 1 and as the Section 2 Document Number.' }
     ]
   },
   ead_card: {
-    label: 'Employment Authorization Document (EAD)', list: 'A',
+    label: 'Employment Authorization Document (EAD) / Permiso de Trabajo', list: 'A',
     issuingAuthorityOptions: ['U.S. Department of Homeland Security'],
     hasExpiration: true, hasDOB: true,
     numberFields: [
-      { key: 'uscis_number', label: 'USCIS Number', goesTo: ['s1'], note: 'Recorded in Section 1 only.' },
-      { key: 'card_number', label: 'Card Number', goesTo: ['s2'],
+      { key: 'uscis_number', label: 'USCIS Number / Número USCIS', goesTo: ['s1'], note: 'Recorded in Section 1 only. / Solo se registra en la Sección 1.' },
+      { key: 'card_number', label: 'Card Number / Número de Tarjeta', goesTo: ['s2'],
         note: 'This is the number recorded as the Section 2 Document Number — NOT the USCIS Number above.' }
     ]
   },
   passport: {
-    label: 'U.S. Passport', list: 'A',
+    label: 'U.S. Passport / Pasaporte de EE. UU.', list: 'A',
     issuingAuthorityOptions: ['U.S. Department of State'],
     hasExpiration: true, hasDOB: true,
-    numberFields: [ { key: 'passport_number', label: 'Passport Number', goesTo: ['s2'] } ]
+    numberFields: [ { key: 'passport_number', label: 'Passport Number / Número de Pasaporte', goesTo: ['s2'] } ]
   },
   other_a: {
-    label: 'Other document (single, proves both identity and work authorization)', list: 'A',
+    label: 'Other document / Otro documento (prueba identidad y autorización de trabajo)', list: 'A',
     issuingAuthorityOptions: ['Other (specify)'],
     hasExpiration: true, hasDOB: true,
-    numberFields: [ { key: 'document_number', label: 'Document Number', goesTo: ['s2'] } ]
+    numberFields: [ { key: 'document_number', label: 'Document Number / Número de Documento', goesTo: ['s2'] } ]
   },
   drivers_license: {
-    label: "Driver's License", list: 'B',
+    label: "Driver's License / Licencia de Conducir", list: 'B',
     issuingAuthorityOptions: ['State DMV (specify state)'],
     hasExpiration: true, hasDOB: true,
-    numberFields: [ { key: 'license_number', label: 'License Number', goesTo: ['s2'] } ]
+    numberFields: [ { key: 'license_number', label: 'License Number / Número de Licencia', goesTo: ['s2'] } ]
   },
   state_id: {
-    label: 'State-Issued ID Card', list: 'B',
+    label: 'State-Issued ID Card / Identificación Estatal', list: 'B',
     issuingAuthorityOptions: ['State ID Agency (specify state)'],
     hasExpiration: true, hasDOB: true,
-    numberFields: [ { key: 'id_number', label: 'ID Number', goesTo: ['s2'] } ]
+    numberFields: [ { key: 'id_number', label: 'ID Number / Número de Identificación', goesTo: ['s2'] } ]
   },
   other_b: {
-    label: 'Other identity document', list: 'B',
+    label: 'Other identity document / Otro documento de identidad', list: 'B',
     issuingAuthorityOptions: ['Other (specify)'],
     hasExpiration: true, hasDOB: true,
-    numberFields: [ { key: 'document_number', label: 'Document Number', goesTo: ['s2'] } ]
+    numberFields: [ { key: 'document_number', label: 'Document Number / Número de Documento', goesTo: ['s2'] } ]
   },
   ssn_card: {
-    label: 'Social Security Card', list: 'C',
+    label: 'Social Security Card / Tarjeta de Seguro Social', list: 'C',
     issuingAuthorityOptions: ['Social Security Administration'],
     hasExpiration: false, hasDOB: false,
     skipExtraction: true,  // AI declines to transcribe SSNs from photos — always manual entry
-    numberFields: [ { key: 'ssn', label: 'Social Security Number', goesTo: ['s1'] } ]
+    numberFields: [ { key: 'ssn', label: 'Social Security Number / Número de Seguro Social', goesTo: ['s1'] } ]
   },
   birth_certificate: {
-    label: 'Birth Certificate', list: 'C',
+    label: 'Birth Certificate / Acta de Nacimiento', list: 'C',
     issuingAuthorityOptions: ['State/County Vital Records Office (specify)'],
     hasExpiration: false, hasDOB: true,
-    numberFields: [ { key: 'certificate_number', label: 'Certificate Number', goesTo: ['s2'] } ]
+    numberFields: [ { key: 'certificate_number', label: 'Certificate Number / Número de Certificado', goesTo: ['s2'] } ]
   },
   other_c: {
-    label: 'Other work-authorization document', list: 'C',
+    label: 'Other work-authorization document / Otro documento de autorización de trabajo', list: 'C',
     issuingAuthorityOptions: ['Other (specify)'],
     hasExpiration: false, hasDOB: true,
-    numberFields: [ { key: 'document_number', label: 'Document Number', goesTo: ['s2'] } ]
+    numberFields: [ { key: 'document_number', label: 'Document Number / Número de Documento', goesTo: ['s2'] } ]
   }
 };
 
@@ -432,9 +439,9 @@ function validateDateField(inputEl) {
 }
 
 const LIST_LABELS = {
-  A: { title: 'The Document', badge: 'Proves identity + right to work', cls: 'a' },
-  B: { title: 'Document 1 — Proves Who They Are', badge: 'Identity only', cls: 'b' },
-  C: { title: 'Document 2 — Proves They Can Work', badge: 'Work authorization only', cls: 'c' }
+  A: { title: 'The Document / El Documento', badge: 'Proves identity + right to work / Prueba identidad y derecho a trabajar', cls: 'a' },
+  B: { title: 'Document 1 — Proves Who They Are / Documento 1 — Prueba Quién Es', badge: 'Identity only / Solo identidad', cls: 'b' },
+  C: { title: 'Document 2 — Proves They Can Work / Documento 2 — Prueba Que Puede Trabajar', badge: 'Work authorization only / Solo autorización de trabajo', cls: 'c' }
 };
 
 function docTypeOptionsFor(list) {
@@ -456,37 +463,37 @@ function buildPanelHTML(id, list) {
     <h2>${info.title}</h2>
     <div class="doc-select-row" style="margin-bottom:14px">
       <select data-role="doc-type">
-        <option value="">Select document type…</option>
+        <option value="">Select document type… / Seleccione el tipo de documento…</option>
         ${docTypeOptionsFor(list)}
       </select>
     </div>
 
-    <p class="sub" style="margin-bottom:8px; font-weight:600; color:var(--navy);">Front of document</p>
+    <p class="sub" style="margin-bottom:8px; font-weight:600; color:var(--navy);">Front of document<span class="es-sub">Frente del documento</span></p>
     <label class="upload-zone disabled" data-role="front-zone">
       <input type="file" data-role="front-input" accept="image/*" capture="environment" disabled>
       <div data-role="front-prompt">
         <div class="icon">📷</div>
-        <div class="label" data-role="front-label">Select a document type above first</div>
-        <div class="hint">Then tap here to photograph or upload it</div>
+        <div class="label" data-role="front-label">Select a document type above first<span class="es-sub" style="font-weight:400;">Primero seleccione un tipo de documento arriba</span></div>
+        <div class="hint">Then tap here to photograph or upload it<br><span class="es-sub">Luego toque aquí para fotografiarlo o subirlo</span></div>
       </div>
       <img data-role="front-preview" class="preview-img" style="display:none">
     </label>
 
     <div data-role="back-section" style="display:none; margin-top:14px">
-      <p class="sub" style="margin-bottom:8px; font-weight:600; color:var(--navy);">Back of document (optional — add if numbers or details appear on the back)</p>
+      <p class="sub" style="margin-bottom:8px; font-weight:600; color:var(--navy);">Back of document (optional — add if numbers or details appear on the back)<span class="es-sub">Reverso del documento (opcional — agregue si hay números o detalles en el reverso)</span></p>
       <label class="upload-zone" data-role="back-zone">
         <input type="file" data-role="back-input" accept="image/*" capture="environment">
         <div data-role="back-prompt">
           <div class="icon">📷</div>
-          <div class="label">Tap to add a back-of-document photo</div>
-          <div class="hint">Skip this if the front has everything needed</div>
+          <div class="label">Tap to add a back-of-document photo<span class="es-sub" style="font-weight:400;">Toque para agregar una foto del reverso</span></div>
+          <div class="hint">Skip this if the front has everything needed<br><span class="es-sub">Omita esto si el frente tiene todo lo necesario</span></div>
         </div>
         <img data-role="back-preview" class="preview-img" style="display:none">
       </label>
     </div>
 
     <div data-role="read-row" style="display:none; margin-top:16px">
-      <button class="btn btn-primary" data-role="read-btn">Read document</button>
+      <button class="btn btn-primary" data-role="read-btn">Read document<span class="es-sub" style="color:#cfd6e6;">Leer documento</span></button>
     </div>
 
     <div data-role="status-line" style="display:none" class="status-line">
@@ -808,7 +815,7 @@ function createPanelController(panelEl) {
         if (!image) return null;
         const ext = (image.mediaType.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
         const path = `${candidateId}/${docTypeKey}_${side}_${Date.now()}.${ext}`;
-        const byteChars = atob(image.data);
+        const byteChars = atob(image.base64Data);
         const byteNumbers = new Array(byteChars.length);
         for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
         const byteArray = new Uint8Array(byteNumbers);
