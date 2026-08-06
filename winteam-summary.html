@@ -51,8 +51,9 @@
 </head>
 <body>
 
-<div class="topbar">
+<div class="topbar" style="display:flex; justify-content:space-between; align-items:center;">
   <div class="brand">KENCAL <span>ONBOARDING</span></div>
+  <a href="index.html" style="color:#cfd6e6; font-size:13px; text-decoration:none; border:1px solid #3a4870; border-radius:6px; padding:6px 12px;">🏠 Home</a>
 </div>
 
 <div class="wrap">
@@ -69,10 +70,13 @@
 
   <div class="card" id="candidateGateCard" style="display:none">
     <h2>Select a candidate</h2>
-    <p class="sub">Shows what's filled in so far — and doubles as your WinTeam typing reference once everything's complete.</p>
-    <select id="candidateSelect" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
+    <p class="sub">Shows what's filled in so far — and doubles as your WinTeam typing reference once everything's complete. Once someone's marked Hired, they drop off this list automatically.</p>
+    <select id="candidateSelect" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; font-size:14px; margin-bottom:10px;">
       <option value="">Loading candidates…</option>
     </select>
+    <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-soft);">
+      <input type="checkbox" id="showAllToggle"> Show everyone, including already-hired and rejected
+    </label>
   </div>
 
   <div class="card" id="summaryCard" style="display:none">
@@ -81,6 +85,7 @@
     <div class="progress-label" id="progressLabel"></div>
     <div id="wtFields"></div>
     <button class="btn no-print" id="printBtn">Print / Save as PDF</button>
+    <button class="btn no-print" id="chooseAnotherBtn" style="background:transparent; color:var(--navy); border:1px solid var(--line);">← Choose a Different Employee</button>
   </div>
 
 </div>
@@ -117,15 +122,36 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
 });
 
+let showAll = false;
+
+function last4Ssn(c) {
+  const app = Array.isArray(c.applications) ? c.applications[0] : c.applications;
+  const ssn = app && app.ssn;
+  return ssn ? ssn.slice(-4) : '????';
+}
 async function loadCandidates() {
   const select = document.getElementById('candidateSelect');
-  const { data, error } = await supabaseClient.from('candidates').select('id, first_name, last_name, status, created_at').order('created_at', { ascending: false }).limit(100);
+  let query = supabaseClient.from('candidates').select('id, first_name, last_name, status, created_at, applications(ssn)').order('last_name', { ascending: true });
+  if (!showAll) query = query.in('status', ['applied', 'approved', 'in_person_verified']);
+  const { data, error } = await query.limit(300);
   if (error) { select.innerHTML = `<option value="">Error: ${error.message}</option>`; return; }
-  if (!data || data.length === 0) { select.innerHTML = `<option value="">No candidates found</option>`; return; }
-  select.innerHTML = `<option value="">Select a candidate…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} — ${c.status}</option>`).join('');
+  if (!data || data.length === 0) { select.innerHTML = `<option value="">No candidates in this view</option>`; return; }
+  select.innerHTML = `<option value="">Select a candidate…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} (***${last4Ssn(c)}) — ${c.status}</option>`).join('');
 }
 
 document.getElementById('candidateSelect').addEventListener('change', (e) => selectCandidate(e.target.value));
+
+document.getElementById('showAllToggle').addEventListener('change', async (e) => {
+  showAll = e.target.checked;
+  await loadCandidates();
+});
+
+document.getElementById('chooseAnotherBtn').addEventListener('click', async () => {
+  document.getElementById('summaryCard').style.display = 'none';
+  document.getElementById('candidateGateCard').style.display = 'block';
+  document.getElementById('candidateSelect').value = '';
+  await loadCandidates();
+});
 
 const CITIZENSHIP_LABELS = {
   us_citizen: 'U.S. Citizen',
@@ -161,6 +187,7 @@ async function selectCandidate(candidateId) {
   const { data: candidate } = await supabaseClient.from('candidates').select('*').eq('id', candidateId).single();
   const { data: application } = await supabaseClient.from('applications').select('*').eq('candidate_id', candidateId).single();
   const { data: i9 } = await supabaseClient.from('i9_section1').select('*').eq('candidate_id', candidateId).single();
+  const { data: i9s2 } = await supabaseClient.from('i9_section2').select('*').eq('candidate_id', candidateId).single();
   const { data: w4 } = await supabaseClient.from('w4_federal').select('*').eq('candidate_id', candidateId).single();
 
   document.getElementById('candidateGateCard').style.display = 'none';
@@ -180,7 +207,12 @@ async function selectCandidate(candidateId) {
   const zip = (i9 && i9.zip) || (application && application.zip) || '';
   const phone = (i9 && i9.phone) || (application && application.phone) || '';
   const dob = i9 ? fmtDate(i9.date_of_birth) : '';
-  const i9Exp = i9 ? fmtDate(i9.work_authorization_expiration) : '';
+  const i9Exp = fmtDate(
+    (i9 && i9.work_authorization_expiration) ||
+    (i9s2 && i9s2.expiration_date) ||
+    (i9s2 && i9s2.list_c_expiration_date) ||
+    ''
+  );
   const i9Type = (i9 && i9.citizenship_status) ? CITIZENSHIP_LABELS[i9.citizenship_status] || i9.citizenship_status : '';
   const maritalStatus = (w4 && w4.filing_status) ? FILING_STATUS_LABELS[w4.filing_status] || w4.filing_status : '';
   const dependentsCount = w4 ? (Number(w4.qualifying_children_count || 0) + Number(w4.other_dependents_count || 0)) : null;
