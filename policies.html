@@ -115,12 +115,17 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
 });
 
+function last4Ssn(c) {
+  const app = Array.isArray(c.applications) ? c.applications[0] : c.applications;
+  const ssn = app && app.ssn;
+  return ssn ? ssn.slice(-4) : '????';
+}
 async function loadCandidates() {
   const select = document.getElementById('candidateSelect');
-  const { data, error } = await supabaseClient.from('candidates').select('id, first_name, last_name, status, created_at').order('created_at', { ascending: false }).limit(50);
+  const { data, error } = await supabaseClient.from('candidates').select('id, first_name, last_name, status, created_at, applications(ssn)').order('created_at', { ascending: false }).limit(50);
   if (error) { select.innerHTML = `<option value="">Error: ${error.message}</option>`; return; }
   if (!data || data.length === 0) { select.innerHTML = `<option value="">No candidates found</option>`; return; }
-  select.innerHTML = `<option value="">Select a candidate…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} — ${c.status}</option>`).join('');
+  select.innerHTML = `<option value="">Select a candidate…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} (***${last4Ssn(c)}) — ${c.status}</option>`).join('');
 }
 
 function selectCandidate(candidateId) {
@@ -200,21 +205,99 @@ const T = {
     ],
     workRulesAck: 'I have read and understand the above rules and regulations and agree to abide by them.',
 
-    harassmentTitle: 'Sexual Harassment Policy (Summary)',
-    harassmentSub: 'Condensed from the full policy. Ask Yazmin or HR for the complete document at any time.',
+    harassmentTitle: 'Sexual Harassment Policy',
+    harassmentSub: 'The complete policy — please read all of it before signing.',
     harassmentBody: `
-      <h3>Our Commitment</h3>
-      <p>Kencal Maintenance is committed to a workplace free from sexual harassment. Harassment is against the law, and every employee has the legal right to work free from it — regardless of immigration status. This applies to all employees, applicants, interns, and contractors.</p>
-      <h3>What Counts as Sexual Harassment</h3>
-      <p>Unwelcome conduct of a sexual nature — or conduct directed at someone because of their sex — that interferes with work, creates a hostile environment, or is made a condition of employment. Examples include unwanted touching, sexual comments or jokes, requests for sexual favors tied to job benefits, sexual images or displays, and hostile actions based on sex, sexual orientation, or gender identity. Even a single incident can be a violation.</p>
-      <h3>No Retaliation</h3>
-      <p>Kencal will not tolerate retaliation against anyone who reports harassment, provides information, or assists in an investigation — in good faith. Retaliation is itself a serious violation subject to discipline.</p>
-      <h3>How to Report</h3>
-      <p>Report to your Supervisor, Manager, or Kencal's HR Department. Reports can be verbal or written. Kencal's HR contact: (914) 761-5900, rstorey@kencalmaintenance.com, 399 Knollwood Road, White Plains, NY 10603. All complaints will be investigated promptly and kept confidential to the extent possible.</p>
-      <h3>Your Outside Legal Options</h3>
-      <p>Beyond Kencal's internal process, you may also file a complaint with the NYS Division of Human Rights (within 1 year), sue directly in state court (within 3 years), or file with the federal EEOC (within 300 days). These are free to file and do not require a lawyer.</p>
+      <h3>Introduction</h3>
+      <p>Kencal Maintenance is committed to maintaining a workplace free from sexual harassment. Sexual harassment is a form of workplace discrimination. All employees are required to work in a manner that prevents sexual harassment in the workplace. This Policy is one component of Kencal Maintenance's commitment to a discrimination-free work environment. Sexual harassment is against the law and all employees have a legal right to a workplace free from sexual harassment and employees are urged to report sexual harassment by filing a complaint internally with Kencal Maintenance. Employees can also file a complaint with a government agency or in court under federal, state or local antidiscrimination laws.</p>
+
+      <h3>Policy</h3>
+      <ol>
+        <li>Kencal Maintenance's policy applies to all employees, applicants for employment, interns, whether paid or unpaid, contractors and persons conducting business, regardless of immigration status, with Kencal Maintenance. In the remainder of this document, the term "employees" refers to this collective group.</li>
+        <li>Sexual harassment will not be tolerated. Any employee or individual covered by this policy who engages in sexual harassment or retaliation will be subject to remedial and/or disciplinary action (e.g., counseling, suspension, termination).</li>
+      </ol>
+      <p><strong>Retaliation Prohibition:</strong> No person covered by this Policy shall be subject to adverse action because the employee reports an incident of sexual harassment, provides information, or otherwise assists in any investigation of a sexual harassment complaint. Kencal Maintenance will not tolerate such retaliation against anyone who, in good faith, reports or provides information about suspected sexual harassment. Any employee of Kencal Maintenance who retaliates against anyone involved in a sexual harassment investigation will be subjected to disciplinary action, up to and including termination. All employees, or non-employees working in the workplace who believe they have been subject to such retaliation should inform a supervisor, manager, or Kencal Maintenance's Human Resources Department.</p>
+      <ol start="3">
+        <li>Sexual harassment is offensive, is a violation of our culture and policies, is unlawful, and may subject Kencal Maintenance to liability for harm to targets of sexual harassment. Harassers may also be individually subject to liability. Employees of every level who engage in sexual harassment, including managers and supervisors who engage in sexual harassment or who allow such behavior to continue, will be penalized for such misconduct.</li>
+        <li>Kencal Maintenance will conduct a prompt and thorough investigation that ensures due process for all parties, whenever management receives a complaint about sexual harassment, or otherwise knows of possible sexual harassment occurring. Kencal Maintenance will keep the investigation confidential to the extent possible. Effective corrective action will be taken whenever sexual harassment is found to have occurred.</li>
+        <li>All employees are encouraged to report any harassment or behaviors that violate this policy. A written Complaint Form is available from Kencal's Human Resources Department for anyone who wishes to submit a complaint in writing.</li>
+        <li>Managers and supervisors are required to report any complaint that they receive, or any harassment that they observe or become aware of, to Kencal Maintenance's Human Resources Department.</li>
+        <li>This policy applies to all employees, paid or unpaid interns, and non-employees and all must follow and uphold this policy. This policy is provided to all employees, either through a distribution or upon hiring.</li>
+      </ol>
+
+      <h3>What Is "Sexual Harassment"?</h3>
+      <p>Sexual harassment is a form of sex discrimination and is unlawful under federal, state, and (where applicable) local law. Sexual harassment includes harassment on the basis of sex, sexual orientation, self-identified or perceived sex, gender expression, gender identity and the status of being transgender.</p>
+      <p>Sexual harassment includes unwelcome conduct which is either of a sexual nature, or which is directed at an individual because of that individual's sex when:</p>
+      <ul>
+        <li>Such conduct has the purpose or effect of unreasonably interfering with an individual's work performance or creating an intimidating, hostile or offensive work environment, even if the reporting individual is not the intended target of the sexual harassment;</li>
+        <li>Such conduct is made either explicitly or implicitly a term or condition of employment; or</li>
+        <li>Submission to or rejection of such conduct is used as the basis for employment decisions affecting an individual's employment.</li>
+      </ul>
+      <p>A sexually harassing hostile work environment includes, but is not limited to, words, signs, jokes, pranks, intimidation or physical violence which are of a sexual nature, or which are directed at an individual because of that individual's sex. Sexual harassment also occurs when a person in authority tries to trade job benefits for sexual favors — this is also called "quid pro quo" harassment.</p>
+      <p>Any employee who feels harassed should report so that any violation of this policy can be corrected promptly. Any harassing conduct, even a single incident, can be addressed under this policy.</p>
+
+      <h4>Examples of sexual harassment</h4>
+      <p>The following describes some of the types of acts that may be unlawful sexual harassment and that are strictly prohibited:</p>
+      <ul>
+        <li>Physical acts of a sexual nature, such as touching, pinching, patting, kissing, hugging, grabbing, or brushing against another employee's body; or rape, sexual battery, molestation, or attempts to commit these assaults.</li>
+        <li>Unwanted sexual advances or propositions, such as requests for sexual favors accompanied by implied or overt threats concerning the target's job performance, a promotion, or other job benefits or detriments; or subtle or obvious pressure for unwelcome sexual activities.</li>
+        <li>Sexually oriented gestures, noises, remarks or jokes, or comments about a person's sexuality or sexual experience, which create a hostile work environment.</li>
+        <li>Sex stereotyping — treating conduct or personality traits as inappropriate simply because they don't conform to ideas about how someone of a particular sex should act or look.</li>
+        <li>Sexual or discriminatory displays or publications anywhere in the workplace, including on workplace computers or cell phones.</li>
+        <li>Hostile actions taken against someone because of their sex, sexual orientation, gender identity, or transgender status, such as interfering with or damaging their workstation or tools, sabotaging their work, or bullying, yelling, or name-calling.</li>
+      </ul>
+
+      <h4>Who can be a target of sexual harassment?</h4>
+      <p>Sexual harassment can occur between any individuals, regardless of their sex or gender. New York Law protects employees, paid or unpaid interns, and non-employees, including independent contractors. Harassers can be a superior, a subordinate, a coworker, or anyone in the workplace including an independent contractor, vendor, client, customer, or visitor.</p>
+
+      <h4>Where can sexual harassment occur?</h4>
+      <p>Unlawful sexual harassment is not limited to the physical workplace itself. It can occur while employees are traveling for business or at employer-sponsored events. Calls, texts, emails, and social media usage by employees can constitute unlawful workplace harassment, even if they occur away from the workplace, on personal devices, or during non-work hours.</p>
+
+      <h3>Retaliation</h3>
+      <p>Unlawful retaliation can be any action that could discourage a worker from coming forward to make or support a sexual harassment claim. Adverse action need not be job-related or occur in the workplace to constitute unlawful retaliation.</p>
+      <p>Such retaliation is unlawful under federal, state, and local law. The New York State Human Rights Law protects any individual who has engaged in "protected activity" — meaning a person who has:</p>
+      <ul>
+        <li>made a complaint of sexual harassment, either internally or with any anti-discrimination agency;</li>
+        <li>testified or assisted in a proceeding involving sexual harassment;</li>
+        <li>opposed sexual harassment by making a verbal or informal complaint to management;</li>
+        <li>reported that another employee has been sexually harassed; or</li>
+        <li>encouraged a fellow employee to report harassment.</li>
+      </ul>
+      <p>Even if the alleged harassment does not turn out to rise to the level of a violation of law, the individual is protected from retaliation if they had a good faith belief that the practices were unlawful.</p>
+
+      <h3>Reporting Sexual Harassment</h3>
+      <p>Preventing sexual harassment is everyone's responsibility. Kencal Maintenance cannot prevent or remedy sexual harassment unless it knows about it. Any employee who has been subjected to behavior that may constitute sexual harassment is encouraged to report it to a supervisor, manager, or Kencal Maintenance's Human Resources Department. Anyone who witnesses or becomes aware of potential sexual harassment should also report it.</p>
+      <p>Reports of sexual harassment may be made verbally or in writing. A written Complaint Form is available from Kencal's Human Resources Department, and all employees are encouraged to use it when submitting a written complaint.</p>
+
+      <h3>Supervisory Responsibilities</h3>
+      <p>All supervisors and managers who receive a complaint or information about suspected sexual harassment, or observe what may be sexually harassing behavior, are required to report it to Kencal Maintenance's Human Resources Department. Supervisors and managers will be subject to discipline for failing to report suspected sexual harassment, for knowingly allowing it to continue, or for engaging in any retaliation.</p>
+
+      <h3>Complaint and Investigation of Sexual Harassment</h3>
+      <p>All complaints or information about sexual harassment will be investigated, whether reported verbally or in writing. Investigations will be conducted in a timely manner and kept confidential to the extent possible. All persons involved — including complainants, witnesses, and alleged harassers — will be accorded due process to protect their rights to a fair and impartial investigation.</p>
+      <p>While the process may vary from case to case, investigations generally include: an immediate review of the allegations and any appropriate interim actions; obtaining and preserving relevant documents, emails, or records; interviewing all relevant parties and witnesses; creating written documentation of the investigation (including a timeline, summary of statements, and the basis for the final decision); keeping that documentation secure and confidential; and promptly notifying both parties of the final determination and any corrective action taken. The individual who reported the complaint will also be informed of their right to file a complaint or charge externally, as outlined below.</p>
+
+      <h3>Legal Protections and External Remedies</h3>
+      <p>Sexual harassment is not only prohibited by Kencal Maintenance but is also prohibited by state, federal, and, where applicable, local law. Aside from Kencal Maintenance's internal process, employees may also choose to pursue legal remedies with the following governmental mechanisms.</p>
+
+      <h4>State Human Rights Law (HRL)</h4>
+      <p>The Human Rights Law (HRL), codified as N.Y. Executive Law, art. 15, § 290 et seq., applies to all employers in New York State with regard to sexual harassment, and protects employees, paid or unpaid interns, and non-employees, regardless of immigration status. A complaint alleging violation of the HRL may be filed either with the Division of Human Rights (DHR) or in New York State Supreme Court.</p>
+      <p>Complaints with DHR may be filed any time within one year of the harassment. If an individual did not file with DHR, they can sue directly in state court under the HRL within three years of the alleged harassment. Complaining internally to Kencal Maintenance does not extend these deadlines. There is no cost to file with DHR and no attorney is required.</p>
+      <p>DHR's main office: NYS Division of Human Rights, One Fordham Plaza, Fourth Floor, Bronx, New York 10458. Phone: (718) 741-8400, or (888) 392-3644 for complaint filing information. Website: <span style="white-space:nowrap;">www.dhr.ny.gov</span> / <span style="white-space:nowrap;">dhr.ny.gov/complaint</span>.</p>
+
+      <h4>Civil Rights Act of 1964</h4>
+      <p>The U.S. Equal Employment Opportunity Commission (EEOC) enforces federal anti-discrimination laws, including Title VII of the 1964 Civil Rights Act. A complaint may be filed with the EEOC any time within 300 days of the harassment, at no cost. The EEOC will investigate and, if reasonable cause is found, may issue a Right to Sue letter permitting the individual to file in federal court.</p>
+      <p>Contact the EEOC at 1-800-669-4000 (TTY: 1-800-669-6820), <span style="white-space:nowrap;">www.eeoc.gov</span>, or <span style="white-space:nowrap;">info@eeoc.gov</span>.</p>
+
+      <h4>Local Protections</h4>
+      <p>Many localities enforce their own laws protecting individuals from sexual harassment and discrimination. For example, employees who work in New York City may file complaints with the New York City Commission on Human Rights (call 311 or (212) 306-7450).</p>
+
+      <h4>Contact the Local Police Department</h4>
+      <p>If the harassment involves unwanted physical touching, coerced physical confinement, or coerced sex acts, the conduct may constitute a crime. Contact the local police department.</p>
+
+      <h3>The Complaint Form</h3>
+      <p>Kencal Maintenance maintains a written Complaint Form for reporting sexual harassment. It is available at any time from Kencal's Human Resources Department — Rick Storey, (914) 761-5900, rstorey@kencalmaintenance.com, 399 Knollwood Road, White Plains, NY 10603. You are never required to use the written form — a verbal report is equally valid, and Kencal Maintenance will complete the form on your behalf and provide you with a copy.</p>
     `,
-    harassmentAck: "I acknowledge receipt of Kencal's Sexual Harassment Policy summary and agree to read the complete policy and abide by it.",
+    harassmentAck: "I acknowledge receipt of Kencal's complete Sexual Harassment Policy, that I have read it, and agree to abide by it. I understand a written Complaint Form is available from Human Resources at any time.",
 
     signTitle: 'Signature',
     label_sign_name: 'Type your full legal name to sign',
@@ -279,21 +362,99 @@ const T = {
     ],
     workRulesAck: 'He leído y entiendo las reglas y regulaciones anteriores y acepto cumplirlas.',
 
-    harassmentTitle: 'Política de Acoso Sexual (Resumen)',
-    harassmentSub: 'Condensado de la política completa. Pida a Yazmin o a Recursos Humanos el documento completo en cualquier momento.',
+    harassmentTitle: 'Política de Acoso Sexual',
+    harassmentSub: 'La política completa — por favor léala en su totalidad antes de firmar.',
     harassmentBody: `
-      <h3>Nuestro Compromiso</h3>
-      <p>Kencal Maintenance está comprometida a mantener un lugar de trabajo libre de acoso sexual. El acoso es ilegal, y todo empleado tiene el derecho legal de trabajar libre de él, sin importar su estatus migratorio. Esto aplica a todos los empleados, solicitantes, pasantes y contratistas.</p>
-      <h3>Qué Constituye Acoso Sexual</h3>
-      <p>Conducta no deseada de naturaleza sexual, o conducta dirigida a alguien por su sexo, que interfiere con el trabajo, crea un ambiente hostil, o se convierte en condición de empleo. Los ejemplos incluyen tocamientos no deseados, comentarios o bromas sexuales, solicitudes de favores sexuales a cambio de beneficios laborales, imágenes o exhibiciones sexuales, y acciones hostiles basadas en el sexo, orientación sexual o identidad de género. Incluso un solo incidente puede constituir una violación.</p>
-      <h3>Sin Represalias</h3>
-      <p>Kencal no tolerará represalias contra nadie que reporte acoso, proporcione información, o ayude en una investigación de buena fe. Las represalias son en sí mismas una violación grave sujeta a disciplina.</p>
-      <h3>Cómo Reportar</h3>
-      <p>Reporte a su Supervisor, Gerente, o al Departamento de Recursos Humanos de Kencal. Los reportes pueden ser verbales o escritos. Contacto de Recursos Humanos de Kencal: (914) 761-5900, rstorey@kencalmaintenance.com, 399 Knollwood Road, White Plains, NY 10603. Todas las quejas serán investigadas con prontitud y mantenidas confidenciales en la medida de lo posible.</p>
-      <h3>Sus Opciones Legales Externas</h3>
-      <p>Además del proceso interno de Kencal, también puede presentar una queja ante la División de Derechos Humanos del Estado de NY (dentro de 1 año), demandar directamente en la corte estatal (dentro de 3 años), o presentar una queja ante la EEOC federal (dentro de 300 días). Presentar estas quejas es gratis y no requiere abogado.</p>
+      <h3>Introducción</h3>
+      <p>Kencal Maintenance está comprometida a mantener un lugar de trabajo libre de acoso sexual. El acoso sexual es una forma de discriminación laboral. Todos los empleados deben trabajar de manera que se prevenga el acoso sexual en el lugar de trabajo. Esta Política es un componente del compromiso de Kencal Maintenance con un ambiente de trabajo libre de discriminación. El acoso sexual es ilegal y todos los empleados tienen el derecho legal a un lugar de trabajo libre de acoso sexual, y se les insta a reportar el acoso sexual presentando una queja internamente ante Kencal Maintenance. Los empleados también pueden presentar una queja ante una agencia gubernamental o en un tribunal bajo las leyes antidiscriminatorias federales, estatales o locales.</p>
+
+      <h3>Política</h3>
+      <ol>
+        <li>La política de Kencal Maintenance aplica a todos los empleados, solicitantes de empleo, pasantes (remunerados o no), contratistas y personas que realizan negocios con Kencal Maintenance, sin importar su estatus migratorio. En el resto de este documento, el término "empleados" se refiere a este grupo colectivo.</li>
+        <li>El acoso sexual no será tolerado. Cualquier empleado o persona cubierta por esta política que incurra en acoso sexual o represalias estará sujeto a acción correctiva y/o disciplinaria (por ejemplo, asesoramiento, suspensión, despido).</li>
+      </ol>
+      <p><strong>Prohibición de Represalias:</strong> Ninguna persona cubierta por esta Política será sujeta a acción adversa por reportar un incidente de acoso sexual, proporcionar información, o de otra manera ayudar en cualquier investigación de una queja de acoso sexual. Kencal Maintenance no tolerará represalias contra quienes, de buena fe, reporten o proporcionen información sobre sospecha de acoso sexual. Cualquier empleado de Kencal Maintenance que tome represalias contra alguien involucrado en una investigación de acoso sexual será sujeto a acción disciplinaria, hasta e incluyendo el despido.</p>
+      <ol start="3">
+        <li>El acoso sexual es ofensivo, es una violación de nuestra cultura y políticas, es ilegal, y puede sujetar a Kencal Maintenance a responsabilidad por daños a las víctimas de acoso sexual. Los acosadores también pueden ser responsables individualmente. Los empleados de todos los niveles que incurran en acoso sexual, incluyendo gerentes y supervisores que lo cometan o permitan que continúe, serán sancionados por dicha conducta.</li>
+        <li>Kencal Maintenance realizará una investigación rápida y exhaustiva que garantice el debido proceso para todas las partes, cada vez que la gerencia reciba una queja sobre acoso sexual, o tenga conocimiento de un posible acoso sexual. Kencal Maintenance mantendrá la investigación confidencial en la medida de lo posible. Se tomará una acción correctiva efectiva cuando se determine que ocurrió acoso sexual.</li>
+        <li>Se anima a todos los empleados a reportar cualquier acoso o conducta que viole esta política. Un Formulario de Queja por escrito está disponible a través del Departamento de Recursos Humanos de Kencal para cualquiera que desee presentar una queja por escrito.</li>
+        <li>Los gerentes y supervisores están obligados a reportar cualquier queja que reciban, o cualquier acoso que observen o del que tengan conocimiento, al Departamento de Recursos Humanos de Kencal Maintenance.</li>
+        <li>Esta política aplica a todos los empleados, pasantes remunerados o no, y no-empleados, y todos deben seguir y respetar esta política. Esta política se entrega a todos los empleados, ya sea mediante distribución o al momento de la contratación.</li>
+      </ol>
+
+      <h3>¿Qué Es el "Acoso Sexual"?</h3>
+      <p>El acoso sexual es una forma de discriminación por sexo y es ilegal bajo la ley federal, estatal y (donde aplique) local. El acoso sexual incluye el acoso por razón de sexo, orientación sexual, sexo autoidentificado o percibido, expresión de género, identidad de género y la condición de ser transgénero.</p>
+      <p>El acoso sexual incluye conducta no deseada de naturaleza sexual, o dirigida a una persona por su sexo, cuando:</p>
+      <ul>
+        <li>Dicha conducta tiene el propósito o efecto de interferir irrazonablemente con el desempeño laboral de una persona o de crear un ambiente de trabajo intimidante, hostil u ofensivo, incluso si la persona que reporta no es el objetivo previsto del acoso sexual;</li>
+        <li>Dicha conducta se convierte, explícita o implícitamente, en un término o condición de empleo; o</li>
+        <li>La sumisión o el rechazo a dicha conducta se usa como base para decisiones de empleo que afectan a una persona.</li>
+      </ul>
+      <p>Un ambiente de trabajo hostil por acoso sexual incluye, entre otros, palabras, señas, bromas, burlas, intimidación o violencia física de naturaleza sexual, o dirigidas a una persona por su sexo. El acoso sexual también ocurre cuando una persona en autoridad intenta intercambiar beneficios laborales por favores sexuales — esto también se llama acoso "quid pro quo".</p>
+      <p>Cualquier empleado que se sienta acosado debe reportarlo para que cualquier violación de esta política pueda corregirse con prontitud. Cualquier conducta de acoso, incluso un solo incidente, puede abordarse bajo esta política.</p>
+
+      <h4>Ejemplos de acoso sexual</h4>
+      <p>Lo siguiente describe algunos de los tipos de actos que pueden constituir acoso sexual ilegal y que están estrictamente prohibidos:</p>
+      <ul>
+        <li>Actos físicos de naturaleza sexual, como tocar, pellizcar, dar palmaditas, besar, abrazar, agarrar, o rozar el cuerpo de otro empleado; o violación, agresión sexual, abuso, o intentos de cometer estos actos.</li>
+        <li>Avances o proposiciones sexuales no deseadas, como solicitudes de favores sexuales acompañadas de amenazas implícitas o explícitas relacionadas con la evaluación laboral, un ascenso, u otros beneficios laborales; o presión sutil u obvia para actividades sexuales no deseadas.</li>
+        <li>Gestos, ruidos, comentarios o bromas de naturaleza sexual, o comentarios sobre la sexualidad o experiencia sexual de una persona, que crean un ambiente de trabajo hostil.</li>
+        <li>Estereotipos de género — tratar la conducta o rasgos de personalidad como inapropiados simplemente porque no se ajustan a ideas sobre cómo debería actuar o verse alguien de un sexo particular.</li>
+        <li>Exhibiciones o publicaciones sexuales o discriminatorias en cualquier lugar del trabajo, incluso en computadoras o teléfonos celulares del trabajo.</li>
+        <li>Acciones hostiles tomadas contra alguien por su sexo, orientación sexual, identidad de género, o condición de transgénero, tales como interferir con o dañar su estación de trabajo o herramientas, sabotear su trabajo, o intimidar, gritar, o insultar.</li>
+      </ul>
+
+      <h4>¿Quién puede ser víctima de acoso sexual?</h4>
+      <p>El acoso sexual puede ocurrir entre cualquier persona, sin importar su sexo o género. La Ley de Nueva York protege a los empleados, pasantes remunerados o no, y no-empleados, incluyendo contratistas independientes. Los acosadores pueden ser un superior, un subordinado, un compañero de trabajo, o cualquier persona en el lugar de trabajo, incluyendo un contratista independiente, proveedor, cliente, o visitante.</p>
+
+      <h4>¿Dónde puede ocurrir el acoso sexual?</h4>
+      <p>El acoso sexual ilegal no se limita al lugar de trabajo físico. Puede ocurrir mientras los empleados viajan por negocios o en eventos patrocinados por el empleador. Llamadas, mensajes de texto, correos electrónicos, y el uso de redes sociales por parte de los empleados pueden constituir acoso laboral ilegal, incluso si ocurren fuera del lugar de trabajo, en dispositivos personales, o fuera del horario laboral.</p>
+
+      <h3>Represalias</h3>
+      <p>Las represalias ilegales pueden ser cualquier acción que pudiera desalentar a un trabajador de presentarse a hacer o apoyar una queja de acoso sexual. La acción adversa no necesita estar relacionada con el trabajo ni ocurrir en el lugar de trabajo para constituir represalias ilegales.</p>
+      <p>Dichas represalias son ilegales bajo la ley federal, estatal y local. La Ley de Derechos Humanos del Estado de Nueva York protege a cualquier persona que haya participado en "actividad protegida" — es decir, una persona que ha:</p>
+      <ul>
+        <li>presentado una queja de acoso sexual, ya sea internamente o ante cualquier agencia antidiscriminatoria;</li>
+        <li>testificado o ayudado en un procedimiento relacionado con acoso sexual;</li>
+        <li>se opuso al acoso sexual haciendo una queja verbal o informal a la gerencia;</li>
+        <li>reportado que otro empleado ha sido acosado sexualmente; o</li>
+        <li>animado a un compañero de trabajo a reportar el acoso.</li>
+      </ul>
+      <p>Incluso si el presunto acoso no llega a constituir una violación de la ley, la persona está protegida de represalias si tenía una creencia de buena fe de que las prácticas eran ilegales.</p>
+
+      <h3>Cómo Reportar el Acoso Sexual</h3>
+      <p>Prevenir el acoso sexual es responsabilidad de todos. Kencal Maintenance no puede prevenir o remediar el acoso sexual a menos que tenga conocimiento de él. Se anima a cualquier empleado que haya sido sujeto a conducta que pueda constituir acoso sexual a reportarlo a un supervisor, gerente, o al Departamento de Recursos Humanos de Kencal Maintenance. Cualquiera que sea testigo o tenga conocimiento de un posible acoso sexual también debe reportarlo.</p>
+      <p>Los reportes de acoso sexual pueden hacerse verbalmente o por escrito. Un Formulario de Queja por escrito está disponible a través del Departamento de Recursos Humanos de Kencal, y se anima a todos los empleados a usarlo al presentar una queja por escrito.</p>
+
+      <h3>Responsabilidades de los Supervisores</h3>
+      <p>Todos los supervisores y gerentes que reciban una queja o información sobre sospecha de acoso sexual, u observen lo que pueda ser conducta de acoso sexual, están obligados a reportarlo al Departamento de Recursos Humanos de Kencal Maintenance. Los supervisores y gerentes estarán sujetos a disciplina por no reportar sospecha de acoso sexual, por permitir conscientemente que continúe, o por participar en cualquier represalia.</p>
+
+      <h3>Queja e Investigación de Acoso Sexual</h3>
+      <p>Todas las quejas o información sobre acoso sexual serán investigadas, ya sea que se hayan reportado verbalmente o por escrito. Las investigaciones se realizarán de manera oportuna y se mantendrán confidenciales en la medida de lo posible. A todas las personas involucradas — incluyendo denunciantes, testigos, y presuntos acosadores — se les otorgará el debido proceso para proteger su derecho a una investigación justa e imparcial.</p>
+      <p>Aunque el proceso puede variar según el caso, las investigaciones generalmente incluyen: una revisión inmediata de las alegaciones y cualquier acción provisional apropiada; obtener y preservar documentos, correos electrónicos, o registros relevantes; entrevistar a todas las partes y testigos relevantes; crear documentación escrita de la investigación (incluyendo una cronología, resumen de declaraciones, y la base de la decisión final); mantener esa documentación segura y confidencial; y notificar prontamente a ambas partes de la determinación final y cualquier acción correctiva tomada. También se informará a la persona que reportó la queja de su derecho a presentar una queja externamente, como se explica a continuación.</p>
+
+      <h3>Protecciones Legales y Recursos Externos</h3>
+      <p>El acoso sexual no solo está prohibido por Kencal Maintenance, sino que también está prohibido por la ley estatal, federal, y, donde aplique, local. Además del proceso interno de Kencal Maintenance, los empleados también pueden optar por buscar recursos legales a través de los siguientes mecanismos gubernamentales.</p>
+
+      <h4>Ley de Derechos Humanos del Estado (HRL)</h4>
+      <p>La Ley de Derechos Humanos (HRL), codificada como N.Y. Executive Law, art. 15, § 290 y siguientes, aplica a todos los empleadores en el Estado de Nueva York en materia de acoso sexual, y protege a los empleados, pasantes remunerados o no, y no-empleados, sin importar su estatus migratorio. Una queja alegando violación de la HRL puede presentarse ante la División de Derechos Humanos (DHR) o en la Corte Suprema del Estado de Nueva York.</p>
+      <p>Las quejas ante DHR pueden presentarse en cualquier momento dentro de un año del acoso. Si una persona no presentó ante DHR, puede demandar directamente en la corte estatal bajo la HRL dentro de tres años del presunto acoso. Presentar una queja interna ante Kencal Maintenance no extiende estos plazos. No hay costo por presentar ante DHR y no se requiere abogado.</p>
+      <p>Oficina principal de DHR: NYS Division of Human Rights, One Fordham Plaza, Fourth Floor, Bronx, New York 10458. Teléfono: (718) 741-8400, o (888) 392-3644 para información sobre cómo presentar una queja. Sitio web: <span style="white-space:nowrap;">www.dhr.ny.gov</span> / <span style="white-space:nowrap;">dhr.ny.gov/complaint</span>.</p>
+
+      <h4>Ley de Derechos Civiles de 1964</h4>
+      <p>La Comisión de Igualdad de Oportunidades en el Empleo de EE. UU. (EEOC) hace cumplir las leyes federales antidiscriminatorias, incluyendo el Título VII de la Ley de Derechos Civiles de 1964. Una queja puede presentarse ante la EEOC en cualquier momento dentro de 300 días del acoso, sin costo alguno. La EEOC investigará y, si encuentra causa razonable, puede emitir una carta de Derecho a Demandar que permite a la persona presentar una demanda en corte federal.</p>
+      <p>Contacte a la EEOC al 1-800-669-4000 (TTY: 1-800-669-6820), <span style="white-space:nowrap;">www.eeoc.gov</span>, o <span style="white-space:nowrap;">info@eeoc.gov</span>.</p>
+
+      <h4>Protecciones Locales</h4>
+      <p>Muchas localidades tienen sus propias leyes que protegen a las personas del acoso sexual y la discriminación. Por ejemplo, los empleados que trabajan en la Ciudad de Nueva York pueden presentar quejas ante la Comisión de Derechos Humanos de la Ciudad de Nueva York (llame al 311 o al (212) 306-7450).</p>
+
+      <h4>Contacte al Departamento de Policía Local</h4>
+      <p>Si el acoso involucra contacto físico no deseado, confinamiento físico forzado, o actos sexuales forzados, la conducta puede constituir un delito. Contacte al departamento de policía local.</p>
+
+      <h3>El Formulario de Queja</h3>
+      <p>Kencal Maintenance mantiene un Formulario de Queja por escrito para reportar acoso sexual. Está disponible en cualquier momento a través del Departamento de Recursos Humanos de Kencal — Rick Storey, (914) 761-5900, rstorey@kencalmaintenance.com, 399 Knollwood Road, White Plains, NY 10603. Nunca está obligado a usar el formulario escrito — un reporte verbal es igualmente válido, y Kencal Maintenance completará el formulario en su nombre y le proporcionará una copia.</p>
     `,
-    harassmentAck: 'Reconozco haber recibido el resumen de la Política de Acoso Sexual de Kencal y acepto leer la política completa y cumplirla.',
+    harassmentAck: 'Reconozco haber recibido la Política de Acoso Sexual completa de Kencal, que la he leído, y acepto cumplirla. Entiendo que un Formulario de Queja por escrito está disponible a través de Recursos Humanos en cualquier momento.',
 
     signTitle: 'Firma',
     label_sign_name: 'Escriba su nombre legal completo para firmar',
@@ -368,7 +529,7 @@ function buildForm() {
       if (wrErr) throw new Error('Work Rules: ' + wrErr.message);
 
       const { error: shErr } = await supabaseClient.from('policy_acknowledgments').insert({
-        candidate_id: selectedCandidateId, policy_name: 'Sexual Harassment Policy (Summary)', policy_version: '2026',
+        candidate_id: selectedCandidateId, policy_name: 'Sexual Harassment Policy', policy_version: '2026',
         signature_data: name, signed_at: nowIso
       });
       if (shErr) throw new Error('Sexual Harassment Policy: ' + shErr.message);
