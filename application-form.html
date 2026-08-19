@@ -77,6 +77,23 @@
     </div>
   </div>
 
+  <div class="card" id="modeGateCard" style="display:none">
+    <div class="lang-gate">
+      <h1>What do you need to do?</h1>
+      <button class="lang-btn" id="newApplicationBtn">Start a New Application</button>
+      <button class="lang-btn" id="reopenApplicationBtn">Go Back to an Existing Application</button>
+    </div>
+  </div>
+
+  <div class="card" id="reopenGateCard" style="display:none">
+    <div class="lang-gate">
+      <h1>Select who you need to go back to</h1>
+      <select id="reopenCandidateSelect" style="width:100%; max-width:420px; padding:10px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
+        <option value="">Loading…</option>
+      </select>
+    </div>
+  </div>
+
   <div class="card" id="langGateCard" style="display:none">
     <div class="lang-gate">
       <h1>Do you understand English?</h1>
@@ -216,10 +233,56 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     }
     loginStatus.textContent = '';
     document.getElementById('loginGateCard').style.display = 'none';
-    document.getElementById('langGateCard').style.display = 'block';
+    document.getElementById('modeGateCard').style.display = 'block';
   } catch (err) {
     loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err));
   }
+});
+
+let reopenCandidateId = null;
+let reopenExistingData = null;
+
+document.getElementById('newApplicationBtn').addEventListener('click', () => {
+  document.getElementById('modeGateCard').style.display = 'none';
+  document.getElementById('langGateCard').style.display = 'block';
+});
+
+document.getElementById('reopenApplicationBtn').addEventListener('click', async () => {
+  document.getElementById('modeGateCard').style.display = 'none';
+  document.getElementById('reopenGateCard').style.display = 'block';
+  const select = document.getElementById('reopenCandidateSelect');
+  const { data, error } = await supabaseClient
+    .from('candidates')
+    .select('id, first_name, last_name, status, applications(ssn)')
+    .order('last_name', { ascending: true });
+  if (error) { select.innerHTML = `<option value="">Error: ${error.message}</option>`; return; }
+  if (!data || data.length === 0) { select.innerHTML = `<option value="">No applications found yet</option>`; return; }
+  select.innerHTML = `<option value="">Select…</option>` + data.map(c => {
+    const app = Array.isArray(c.applications) ? c.applications[0] : c.applications;
+    const last4 = app && app.ssn ? app.ssn.slice(-4) : '????';
+    return `<option value="${c.id}">${c.last_name}, ${c.first_name} (***${last4}) — ${c.status}</option>`;
+  }).join('');
+});
+
+document.getElementById('reopenCandidateSelect').addEventListener('change', async (e) => {
+  reopenCandidateId = e.target.value;
+  if (!reopenCandidateId) return;
+
+  const [{ data: candidate }, { data: application }, { data: employmentHistory }] = await Promise.all([
+    supabaseClient.from('candidates').select('*').eq('id', reopenCandidateId).single(),
+    supabaseClient.from('applications').select('*').eq('candidate_id', reopenCandidateId).single(),
+    supabaseClient.from('employment_history').select('*').eq('candidate_id', reopenCandidateId).order('sequence_order')
+  ]);
+
+  reopenExistingData = { candidate, application, employmentHistory: employmentHistory || [] };
+  lang = (application && application.preferred_language) || 'en';
+  esignConsentGiven = application ? !!application.esign_consent_given : false;
+  esignConsentAt = application ? application.esign_consent_at : null;
+
+  document.getElementById('reopenGateCard').style.display = 'none';
+  document.getElementById('formSections').style.display = 'block';
+  buildForm();
+  prefillForm(reopenExistingData);
 });
 
 let lang = 'en';
@@ -486,66 +549,112 @@ function buildForm() {
 
     try {
       const { data: { user } } = await supabaseClient.auth.getUser();
+      let candidateId;
 
-      // 1. Create the candidate record
-      const { data: candidate, error: candErr } = await supabaseClient
-        .from('candidates')
-        .insert({
+      if (reopenCandidateId) {
+        // Updating an existing application — preserve the original
+        // signature/consent/date, only the field values themselves change.
+        candidateId = reopenCandidateId;
+
+        const { error: candErr } = await supabaseClient.from('candidates').update({
           first_name: firstName,
           middle_name: val('middle_name'),
           last_name: lastName,
           phone: val('phone'),
+          state: val('state')
+        }).eq('id', candidateId);
+        if (candErr) throw new Error('Could not update candidate: ' + candErr.message);
+
+        const orig = reopenExistingData.application || {};
+        const { error: appErr } = await supabaseClient.from('applications').update({
+          ssn: val('ssn'),
+          street_address: val('street_address'),
+          apt_number: val('apt_number'),
+          city: val('city'),
           state: val('state'),
-          work_state: val('state'), // defaults to match residence; correct later if the actual work site differs
-          created_by: user ? user.id : null,
-          status: 'applied'
-        })
-        .select()
-        .single();
+          zip: val('zip'),
+          phone: val('phone'),
+          desired_schedule: radioVal('schedule'),
+          legally_eligible: toBool(radioVal('eligible')),
+          hs_name: val('hs_name'), hs_location: val('hs_location'),
+          hs_graduated: toBool(radioVal('hs_graduated')), hs_subjects: val('hs_subjects'),
+          college_name: val('college_name'), college_location: val('college_location'),
+          college_graduated: toBool(radioVal('college_graduated')), college_subjects: val('college_subjects'),
+          other_school_name: val('other_name'), other_school_location: val('other_location'),
+          other_school_graduated: toBool(radioVal('other_graduated')), other_school_subjects: val('other_subjects'),
+          felony_conviction: toBool(radioVal('felony')),
+          felony_explanation: val('felony_explanation'),
+          emergency_contact_name: val('emergency_name'),
+          emergency_contact_phone: val('emergency_phone'),
+          signature_data: name
+          // signed_at, application_date, esign_consent_* intentionally left untouched —
+          // this is a correction to an existing signed record, not a new signing event.
+        }).eq('candidate_id', candidateId);
+        if (appErr) throw new Error('Could not update application details: ' + appErr.message);
 
-      if (candErr) throw new Error('Could not create candidate: ' + candErr.message);
-      const candidateId = candidate.id;
+        // Replace employment history wholesale — simplest correct way to
+        // handle a variable number of entries changing.
+        await supabaseClient.from('employment_history').delete().eq('candidate_id', candidateId);
 
-      // 2. Create the application record
-      const today = new Date();
-      const mmddyyyy = String(today.getMonth()+1).padStart(2,'0') + '/' + String(today.getDate()).padStart(2,'0') + '/' + today.getFullYear();
+      } else {
+        // 1. Create the candidate record
+        const { data: candidate, error: candErr } = await supabaseClient
+          .from('candidates')
+          .insert({
+            first_name: firstName,
+            middle_name: val('middle_name'),
+            last_name: lastName,
+            phone: val('phone'),
+            state: val('state'),
+            work_state: val('state'), // defaults to match residence; correct later if the actual work site differs
+            created_by: user ? user.id : null,
+            status: 'applied'
+          })
+          .select()
+          .single();
 
-      const { error: appErr } = await supabaseClient.from('applications').insert({
-        candidate_id: candidateId,
-        ssn: val('ssn'),
-        street_address: val('street_address'),
-        apt_number: val('apt_number'),
-        city: val('city'),
-        state: val('state'),
-        zip: val('zip'),
-        phone: val('phone'),
-        desired_schedule: radioVal('schedule'),
-        legally_eligible: toBool(radioVal('eligible')),
-        hs_name: val('hs_name'), hs_location: val('hs_location'),
-        hs_graduated: toBool(radioVal('hs_graduated')), hs_subjects: val('hs_subjects'),
-        college_name: val('college_name'), college_location: val('college_location'),
-        college_graduated: toBool(radioVal('college_graduated')), college_subjects: val('college_subjects'),
-        other_school_name: val('other_name'), other_school_location: val('other_location'),
-        other_school_graduated: toBool(radioVal('other_graduated')), other_school_subjects: val('other_subjects'),
-        felony_conviction: toBool(radioVal('felony')),
-        felony_explanation: val('felony_explanation'),
-        emergency_contact_name: val('emergency_name'),
-        emergency_contact_phone: val('emergency_phone'),
-        preferred_language: lang,
-        esign_consent_given: esignConsentGiven,
-        esign_consent_at: esignConsentAt,
-        signature_data: name,
-        signed_at: new Date().toISOString(),
-        application_date: today.toISOString().slice(0,10)
-      });
+        if (candErr) throw new Error('Could not create candidate: ' + candErr.message);
+        candidateId = candidate.id;
 
-      if (appErr) throw new Error('Could not save application details: ' + appErr.message);
+        // 2. Create the application record
+        const today = new Date();
+        const { error: appErr } = await supabaseClient.from('applications').insert({
+          candidate_id: candidateId,
+          ssn: val('ssn'),
+          street_address: val('street_address'),
+          apt_number: val('apt_number'),
+          city: val('city'),
+          state: val('state'),
+          zip: val('zip'),
+          phone: val('phone'),
+          desired_schedule: radioVal('schedule'),
+          legally_eligible: toBool(radioVal('eligible')),
+          hs_name: val('hs_name'), hs_location: val('hs_location'),
+          hs_graduated: toBool(radioVal('hs_graduated')), hs_subjects: val('hs_subjects'),
+          college_name: val('college_name'), college_location: val('college_location'),
+          college_graduated: toBool(radioVal('college_graduated')), college_subjects: val('college_subjects'),
+          other_school_name: val('other_name'), other_school_location: val('other_location'),
+          other_school_graduated: toBool(radioVal('other_graduated')), other_school_subjects: val('other_subjects'),
+          felony_conviction: toBool(radioVal('felony')),
+          felony_explanation: val('felony_explanation'),
+          emergency_contact_name: val('emergency_name'),
+          emergency_contact_phone: val('emergency_phone'),
+          preferred_language: lang,
+          esign_consent_given: esignConsentGiven,
+          esign_consent_at: esignConsentAt,
+          signature_data: name,
+          signed_at: new Date().toISOString(),
+          application_date: today.toISOString().slice(0,10)
+        });
 
-      // 3. Create employment history rows, skipping entries left completely blank
+        if (appErr) throw new Error('Could not save application details: ' + appErr.message);
+      }
+
+      // 3. Save employment history rows, skipping entries left completely blank
       const employmentRows = [1,2,3,4].map(i => ({
         candidate_id: candidateId,
         sequence_order: i,
-        date_from: null, // stored as text on the form (MM/DD/YYYY); only pass through if present
+        date_from: null,
         date_to: null,
         employer_name_address: val(`emp${i}_name_address`),
         salary: val(`emp${i}_salary`),
@@ -553,8 +662,6 @@ function buildForm() {
         reason_for_leaving: val(`emp${i}_reason`)
       })).filter(row => row.employer_name_address);
 
-      // Re-attach the raw typed dates as text since employment_history.date_from/date_to
-      // are actual date columns — pass through only if they look like MM/DD/YYYY
       employmentRows.forEach(row => {
         const i = row.sequence_order;
         const from = val(`emp${i}_from`), to = val(`emp${i}_to`);
@@ -569,11 +676,59 @@ function buildForm() {
         if (empErr) throw new Error('Could not save employment history: ' + empErr.message);
       }
 
-      resultArea.innerHTML = `<div class="result-ok">${t.success(name)}</div>
-        <a class="btn" style="display:block; text-align:center; text-decoration:none; margin-top:10px;" href="admin-dashboard.html?candidate_id=${candidateId}">Continue to Approve / Reject →</a>`;
+      resultArea.innerHTML = reopenCandidateId
+        ? `<div class="result-ok">✓ Application updated for ${name}.</div>
+           <a class="btn" style="display:block; text-align:center; text-decoration:none; margin-top:10px;" href="admin-dashboard.html?candidate_id=${candidateId}">Go to Admin Dashboard →</a>`
+        : `<div class="result-ok">${t.success(name)}</div>
+           <a class="btn" style="display:block; text-align:center; text-decoration:none; margin-top:10px;" href="admin-dashboard.html?candidate_id=${candidateId}">Continue to Approve / Reject →</a>`;
     } catch (err) {
       resultArea.innerHTML = `<div class="result-warn">${(err.message || String(err))}</div>`;
     }
+  });
+}
+
+function prefillForm(data) {
+  const { candidate, application, employmentHistory } = data;
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el && v !== null && v !== undefined) el.value = v; };
+  const setRadio = (name, v) => { if (!v && v !== false) return; const val = v === true ? 'yes' : (v === false ? 'no' : v); const el = document.querySelector(`input[name="${name}"][value="${val}"]`); if (el) el.checked = true; };
+  const isoToMdy = (iso) => { if (!iso) return ''; const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[2]}/${m[3]}/${m[1]}` : ''; };
+
+  if (candidate) {
+    setVal('first_name', candidate.first_name);
+    setVal('middle_name', candidate.middle_name);
+    setVal('last_name', candidate.last_name);
+  }
+  if (application) {
+    setVal('ssn', application.ssn);
+    setVal('phone', application.phone);
+    setVal('street_address', application.street_address);
+    setVal('apt_number', application.apt_number);
+    setVal('city', application.city);
+    setVal('state', application.state);
+    setVal('zip', application.zip);
+    setRadio('schedule', application.desired_schedule);
+    setRadio('eligible', application.legally_eligible);
+    setVal('hs_name', application.hs_name); setVal('hs_location', application.hs_location);
+    setRadio('hs_graduated', application.hs_graduated); setVal('hs_subjects', application.hs_subjects);
+    setVal('college_name', application.college_name); setVal('college_location', application.college_location);
+    setRadio('college_graduated', application.college_graduated); setVal('college_subjects', application.college_subjects);
+    setVal('other_name', application.other_school_name); setVal('other_location', application.other_school_location);
+    setRadio('other_graduated', application.other_school_graduated); setVal('other_subjects', application.other_school_subjects);
+    setRadio('felony', application.felony_conviction);
+    setVal('felony_explanation', application.felony_explanation);
+    setVal('emergency_name', application.emergency_contact_name);
+    setVal('emergency_phone', application.emergency_contact_phone);
+    setVal('signature_name', application.signature_data);
+  }
+  (employmentHistory || []).forEach(row => {
+    const i = row.sequence_order;
+    if (!i || i < 1 || i > 4) return;
+    setVal(`emp${i}_from`, isoToMdy(row.date_from));
+    setVal(`emp${i}_to`, isoToMdy(row.date_to));
+    setVal(`emp${i}_name_address`, row.employer_name_address);
+    setVal(`emp${i}_salary`, row.salary);
+    setVal(`emp${i}_position`, row.position);
+    setVal(`emp${i}_reason`, row.reason_for_leaving);
   });
 }
 </script>
