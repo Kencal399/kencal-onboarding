@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kencal — Find Employee</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root { --navy:#1A2744; --navy-light:#24345a; --gold:#C8A84B; --gold-light:#ddc47f; --paper:#F7F5F1; --ink:#22242b; --ink-soft:#5b5f6b; --line:#dcd9d2; --radius:10px; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:'Segoe UI',-apple-system,sans-serif; }
+  .topbar { background:var(--navy); color:#fff; padding:18px 22px; display:flex; justify-content:space-between; align-items:center; }
+  .topbar .brand { font-weight:700; font-size:15px; letter-spacing:0.02em; }
+  .topbar .brand span { color:var(--gold-light); }
+  .wrap { max-width:640px; margin:0 auto; padding:20px 18px 60px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+  .card h2 { margin:0 0 4px; font-size:15px; color:var(--navy); }
+  .card .sub { margin:0 0 14px; font-size:12.5px; color:var(--ink-soft); }
+  .lang-gate { text-align:center; padding:30px 20px; }
+  .lang-gate h1 { font-size:18px; color:var(--navy); margin-bottom:8px; }
+  .gate-btn { display:block; width:100%; max-width:320px; margin:0 auto 10px; padding:14px; border:2px solid var(--navy); border-radius:10px; background:#fff; color:var(--navy); font-size:15px; font-weight:600; cursor:pointer; }
+  .gate-btn:hover { background:var(--navy); color:#fff; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+  .field input { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; }
+
+  .section-row {
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-bottom:10px;
+    text-decoration:none; color:inherit; transition:border-color .15s ease;
+  }
+  .section-row:hover { border-color:var(--gold); }
+  .section-row .sname { font-weight:600; color:var(--navy); font-size:14.5px; }
+  .section-row .sdesc { font-size:12px; color:var(--ink-soft); margin-top:2px; }
+  .section-row .arrow { color:var(--line); font-size:18px; }
+  .section-row:hover .arrow { color:var(--gold); }
+  .not-ready { opacity:0.55; pointer-events:none; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">KENCAL <span>ONBOARDING</span></div>
+  <a href="index.html" style="color:#cfd6e6; font-size:13px; text-decoration:none; border:1px solid #3a4870; border-radius:6px; padding:6px 12px;">🏠 Home</a>
+</div>
+
+<div class="wrap">
+
+  <div class="card" id="loginGateCard">
+    <div class="lang-gate">
+      <h1>Staff Login</h1>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 10px;"><label>Email</label><input type="email" id="login_email"></div>
+      <div class="field" style="text-align:left; max-width:320px; margin:0 auto 16px;"><label>Password</label><input type="password" id="login_password"></div>
+      <button class="gate-btn" id="loginBtn">Log in</button>
+      <p id="loginStatus" class="sub" style="margin-top:10px"></p>
+    </div>
+  </div>
+
+  <div class="card" id="candidateGateCard" style="display:none">
+    <h2>Find an employee</h2>
+    <p class="sub">Select someone once, then jump straight into any section of their file — no need to log in and re-select them on each page.</p>
+    <select id="candidateSelect" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
+      <option value="">Loading…</option>
+    </select>
+  </div>
+
+  <div id="sectionsArea" style="display:none"></div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://guxemrdukpiqpawskapv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6UwA2vBI-Bw-2Kndb198hg_LkQ0vpJF';
+let supabaseClient;
+try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
+catch (err) { document.getElementById('loginStatus').textContent = 'Setup error: ' + (err.message || String(err)); }
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('login_email').value.trim();
+  const password = document.getElementById('login_password').value;
+  const loginStatus = document.getElementById('loginStatus');
+  loginStatus.textContent = 'Logging in…';
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) { loginStatus.textContent = 'Login failed: ' + error.message; return; }
+    loginStatus.textContent = '';
+    document.getElementById('loginGateCard').style.display = 'none';
+    document.getElementById('candidateGateCard').style.display = 'block';
+    await loadCandidates();
+  } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
+});
+
+function last4Ssn(c) {
+  const app = Array.isArray(c.applications) ? c.applications[0] : c.applications;
+  const ssn = app && app.ssn;
+  return ssn ? ssn.slice(-4) : '????';
+}
+
+async function loadCandidates() {
+  const select = document.getElementById('candidateSelect');
+  const { data, error } = await supabaseClient
+    .from('candidates')
+    .select('id, first_name, last_name, status, applications(ssn)')
+    .order('last_name', { ascending: true });
+  if (error) { select.innerHTML = `<option value="">Error: ${error.message}</option>`; return; }
+  if (!data || data.length === 0) { select.innerHTML = `<option value="">No one found yet</option>`; return; }
+  select.innerHTML = `<option value="">Select…</option>` + data.map(c =>
+    `<option value="${c.id}">${c.last_name}, ${c.first_name} (***${last4Ssn(c)}) — ${c.status}</option>`
+  ).join('');
+}
+
+const STATE_FORM_PAGE = { NY: { page: 'ny-it2104.html', label: 'NY IT-2104' }, CT: { page: 'ct-w4.html', label: 'CT-W4' }, NJ: { page: 'nj-w4.html', label: 'NJ-W4' } };
+
+document.getElementById('candidateSelect').addEventListener('change', async (e) => {
+  const candidateId = e.target.value;
+  if (!candidateId) return;
+
+  const { data: candidate } = await supabaseClient.from('candidates').select('*').eq('id', candidateId).single();
+  if (!candidate) return;
+
+  const stateInfo = STATE_FORM_PAGE[candidate.work_state || candidate.state];
+  const q = `?candidate_id=${candidateId}`;
+
+  const sections = [
+    { name: 'Application', desc: 'Name, address, employment history, education', href: 'application-form.html' + q },
+    { name: 'I-9 Section 1', desc: 'Employee information and citizenship status', href: 'i9-section1.html' + q },
+    { name: 'Federal W-4', desc: 'Federal tax withholding', href: 'w4-federal.html' + q },
+    { name: stateInfo ? stateInfo.label : 'State Withholding Form', desc: 'State tax withholding', href: stateInfo ? stateInfo.page + q : '#', disabled: !stateInfo },
+    { name: 'Policies', desc: 'Work Rules and Sexual Harassment Policy', href: 'policies.html' + q },
+    { name: 'I-9 Section 2', desc: 'Document verification', href: 'i9-section2-verification.html' + q },
+  ];
+
+  document.getElementById('candidateGateCard').style.display = 'none';
+  const area = document.getElementById('sectionsArea');
+  area.style.display = 'block';
+  area.innerHTML = `
+    <div class="card">
+      <h2>${candidate.last_name}, ${candidate.first_name}</h2>
+      <p class="sub">Status: ${candidate.status}</p>
+      ${sections.map(s => `
+        <a class="section-row ${s.disabled ? 'not-ready' : ''}" href="${s.href}">
+          <div><div class="sname">${s.name}</div><div class="sdesc">${s.desc}</div></div>
+          <div class="arrow">→</div>
+        </a>
+      `).join('')}
+    </div>
+  `;
+});
+</script>
+
+</body>
+</html>

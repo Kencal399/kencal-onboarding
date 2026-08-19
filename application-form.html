@@ -233,7 +233,14 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     }
     loginStatus.textContent = '';
     document.getElementById('loginGateCard').style.display = 'none';
-    document.getElementById('modeGateCard').style.display = 'block';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const preselectedId = urlParams.get('candidate_id');
+    if (preselectedId) {
+      await selectExistingCandidate(preselectedId);
+    } else {
+      document.getElementById('modeGateCard').style.display = 'block';
+    }
   } catch (err) {
     loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err));
   }
@@ -264,8 +271,10 @@ document.getElementById('reopenApplicationBtn').addEventListener('click', async 
   }).join('');
 });
 
-document.getElementById('reopenCandidateSelect').addEventListener('change', async (e) => {
-  reopenCandidateId = e.target.value;
+document.getElementById('reopenCandidateSelect').addEventListener('change', (e) => selectExistingCandidate(e.target.value));
+
+async function selectExistingCandidate(candidateId) {
+  reopenCandidateId = candidateId;
   if (!reopenCandidateId) return;
 
   const [{ data: candidate }, { data: application }, { data: employmentHistory }] = await Promise.all([
@@ -283,7 +292,7 @@ document.getElementById('reopenCandidateSelect').addEventListener('change', asyn
   document.getElementById('formSections').style.display = 'block';
   buildForm();
   prefillForm(reopenExistingData);
-});
+}
 
 let lang = 'en';
 let esignConsentGiven = false;
