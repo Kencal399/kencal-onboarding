@@ -161,9 +161,10 @@
 </head>
 <body>
 
-<div class="topbar">
+<div class="topbar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
   <div class="brand">KENCAL <span>ONBOARDING</span></div>
   <div class="stage">I-9 Section 2 · Document Verification</div>
+  <button id="logoutBtn" style="display:none; background:transparent; color:#cfd6e6; font-size:12.5px; border:1px solid #3a4870; border-radius:6px; padding:6px 12px; cursor:pointer;">Log Out</button>
 </div>
 
 <div class="wrap">
@@ -266,6 +267,7 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     if (error) { loginStatus.textContent = 'Login failed: ' + error.message; return; }
     loginStatus.textContent = '';
     document.getElementById('loginGateCard').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'block';
     await loadCandidates();
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -277,6 +279,11 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
       document.getElementById('candidateGateCard').style.display = 'block';
     }
   } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await supabaseClient.auth.signOut();
+  window.location.reload();
 });
 
 function last4Ssn(c) {
@@ -898,6 +905,11 @@ confirmMatchBtn.addEventListener('click', async () => {
   try {
     const { data: { user } } = await supabaseClient.auth.getUser();
 
+    if (!user) {
+      resultArea.innerHTML = `<div class="result-warn">Your login session has expired. Please log out and log back in, then complete this verification again — nothing has been lost, but this step needs an active login to save correctly.</div>`;
+      return;
+    }
+
     // Preserve the original signed_at if this candidate was already
     // verified once before (e.g. a correction) — only a genuinely new
     // record gets a fresh signing timestamp.
@@ -906,7 +918,7 @@ confirmMatchBtn.addEventListener('click', async () => {
 
     let payload = {
       candidate_id: selectedCandidateId,
-      supervisor_id: user ? user.id : null,
+      supervisor_id: user.id,
       verified_in_person_at: new Date().toISOString(),
       signed_at: signedAt,
       first_day_of_employment: selectedCandidate ? selectedCandidate.start_date : null
