@@ -47,9 +47,10 @@
 </head>
 <body>
 
-<div class="topbar">
+<div class="topbar" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
   <div class="brand">KENCAL <span>ONBOARDING</span></div>
   <div class="sub">Form CT-W4 — Employee's Withholding Certificate</div>
+  <a href="index.html" style="color:#cfd6e6; font-size:12.5px; text-decoration:none; border:1px solid #3a4870; border-radius:6px; padding:6px 12px; white-space:nowrap;">🏠 Home</a>
 </div>
 
 <div class="wrap">
@@ -200,6 +201,8 @@ async function loadCandidateData(candidateId) {
     setVal('additional_withholding', existing.additional_withholding);
     setVal('reduced_withholding', existing.reduced_withholding);
   }
+
+  setVal('signature_name', (existing && existing.signature_data) || (application && application.signature_data));
 
   ['first_name','last_name','address','ssn'].forEach(id => {
     const el = document.getElementById(id);

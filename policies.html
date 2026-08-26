@@ -44,9 +44,10 @@
 </head>
 <body>
 
-<div class="topbar">
+<div class="topbar" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
   <div class="brand">KENCAL <span>ONBOARDING</span></div>
   <div class="sub" id="topbarSub">Policies</div>
+  <a href="index.html" style="color:#cfd6e6; font-size:12.5px; text-decoration:none; border:1px solid #3a4870; border-radius:6px; padding:6px 12px; white-space:nowrap;">🏠 Home</a>
 </div>
 
 <div class="wrap">
@@ -128,11 +129,15 @@ async function loadCandidates() {
   select.innerHTML = `<option value="">Select a candidate…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} (***${last4Ssn(c)}) — ${c.status}</option>`).join('');
 }
 
+let selectedApplicationData = null;
+
 function selectCandidate(candidateId) {
   selectedCandidateId = candidateId;
   if (!selectedCandidateId) return;
   document.getElementById('candidateGateCard').style.display = 'none';
   document.getElementById('langGateCard').style.display = 'block';
+  supabaseClient.from('applications').select('signature_data').eq('candidate_id', candidateId).single()
+    .then(({ data }) => { selectedApplicationData = data; });
 }
 
 document.getElementById('candidateSelect').addEventListener('change', (e) => selectCandidate(e.target.value));
@@ -143,6 +148,11 @@ document.querySelectorAll('.gate-btn[data-lang]').forEach(btn => {
     document.getElementById('langGateCard').style.display = 'none';
     document.getElementById('mainCards').style.display = 'block';
     buildForm();
+    // Convenience: pre-fill the signature with their name already on file.
+    const sigInput = document.getElementById('signature_name');
+    if (sigInput && selectedApplicationData && selectedApplicationData.signature_data) {
+      sigInput.value = selectedApplicationData.signature_data;
+    }
   });
 });
 

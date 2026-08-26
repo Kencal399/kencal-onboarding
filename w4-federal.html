@@ -50,9 +50,10 @@
 </head>
 <body>
 
-<div class="topbar">
+<div class="topbar" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
   <div class="brand">KENCAL <span>ONBOARDING</span></div>
   <div class="sub">Federal Form W-4 (2026) — Employee's Withholding Certificate</div>
+  <a href="index.html" style="color:#cfd6e6; font-size:12.5px; text-decoration:none; border:1px solid #3a4870; border-radius:6px; padding:6px 12px; white-space:nowrap;">🏠 Home</a>
 </div>
 
 <div class="wrap">
@@ -259,6 +260,10 @@ async function loadCandidateData(candidateId) {
     setVal('extra_withholding', existingW4.extra_withholding);
     document.getElementById('exempt').checked = !!existingW4.exempt;
   }
+
+  // Convenience: pre-fill the signature with their name already on file,
+  // so it doesn't have to be retyped on every single form.
+  setVal('signature_name', (existingW4 && existingW4.signature_data) || (application && application.signature_data));
 
   ['first_name','last_name','address','ssn'].forEach(id => {
     const el = document.getElementById(id);
