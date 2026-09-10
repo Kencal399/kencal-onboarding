@@ -104,12 +104,17 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   } catch (err) { loginStatus.textContent = 'Unexpected error: ' + (err.message || String(err)); }
 });
 
+function last4Ssn(c) {
+  const app = Array.isArray(c.applications) ? c.applications[0] : c.applications;
+  const ssn = app && app.ssn;
+  return ssn ? ssn.slice(-4) : '????';
+}
 async function loadCandidates() {
   const select = document.getElementById('candidateSelect');
-  const { data, error } = await supabaseClient.from('candidates').select('id, first_name, last_name, status, created_at').order('last_name', { ascending: true }).limit(300);
+  const { data, error } = await supabaseClient.from('candidates').select('id, first_name, last_name, status, created_at, applications(ssn)').order('last_name', { ascending: true }).limit(300);
   if (error) { select.innerHTML = `<option value="">Error: ${error.message}</option>`; return; }
   if (!data || data.length === 0) { select.innerHTML = `<option value="">No candidates found</option>`; return; }
-  select.innerHTML = `<option value="">Select…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} — ${c.status}</option>`).join('');
+  select.innerHTML = `<option value="">Select…</option>` + data.map(c => `<option value="${c.id}">${c.last_name}, ${c.first_name} (***${last4Ssn(c)}) — ${c.status}</option>`).join('');
 }
 
 document.getElementById('candidateSelect').addEventListener('change', (e) => loadDocs(e.target.value));
@@ -237,7 +242,7 @@ async function fillI9(candidate, i9s1, i9s2, employer, candidateId) {
       safeSetText(form, 'USCIS ANumber', i9s1.alien_uscis_number);
     }
     safeSetText(form, "Today's Date mmddyyy", fmtDate(i9s1.form_date));
-    safeSetText(form, 'Signature of Employee', i9s1.signature_data);
+    safeSetText(form, 'Signature of Employee', i9s1.signature_data ? `${i9s1.signature_data} (Signed electronically)` : '');
   }
 
   if (i9s2) {
@@ -269,7 +274,7 @@ async function fillI9(candidate, i9s1, i9s2, employer, candidateId) {
     }
     const nameAndTitle = [i9s2.supervisor_signature, verifierTitle].filter(Boolean).join(', ');
     safeSetText(form, 'Last Name First Name and Title of Employer or Authorized Representative', nameAndTitle);
-    safeSetText(form, 'Signature of Employer or AR', i9s2.supervisor_signature);
+    safeSetText(form, 'Signature of Employer or AR', i9s2.supervisor_signature ? `${i9s2.supervisor_signature} (Signed electronically)` : '');
     safeSetText(form, 'S2 Todays Date mmddyyyy', fmtDate(i9s2.form_date));
   }
 
