@@ -224,6 +224,10 @@
       By confirming below, you attest that <strong>you personally examined the physical document(s)</strong> the employee handed you, and that they reasonably appear genuine and match the person presenting them.
       <br><span class="es-sub">Al confirmar abajo, usted declara que <strong>examinó personalmente el/los documento(s) físico(s)</strong> que el empleado le entregó, y que razonablemente parecen genuinos y corresponden a la persona que los presenta.</span>
     </div>
+    <div class="field" style="margin:14px 0;">
+      <label style="display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:4px;">Type your own full name to sign as the verifier<span class="es-sub">Escriba su propio nombre completo para firmar como verificador</span></label>
+      <input type="text" id="verifierSignatureName" style="width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px;">
+    </div>
     <div class="btn-row">
       <button class="btn btn-primary" id="confirmMatchBtn">✓ Matches — Sign & Verify<span class="es-sub" style="color:#cfd6e6;">Coincide — Firmar y Verificar</span></button>
     </div>
@@ -256,6 +260,7 @@ catch (err) { document.getElementById('loginStatus').textContent = 'Setup error:
 
 let selectedCandidateId = null;
 let selectedCandidate = null;
+let verifierOwnName = '';
 
 document.getElementById('loginBtn').addEventListener('click', async () => {
   const email = document.getElementById('login_email').value.trim();
@@ -268,6 +273,12 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     loginStatus.textContent = '';
     document.getElementById('loginGateCard').style.display = 'none';
     document.getElementById('logoutBtn').style.display = 'block';
+
+    if (data && data.user) {
+      const { data: profile } = await supabaseClient.from('profiles').select('full_name').eq('id', data.user.id).single();
+      if (profile && profile.full_name) verifierOwnName = profile.full_name;
+    }
+
     await loadCandidates();
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -866,6 +877,10 @@ function refreshConfirmVisibility() {
   const anyStarted = activePanels.some(p => p.isStarted());
   confirmCard.style.display = anyStarted ? 'block' : 'none';
   resultArea.innerHTML = '';
+  const sigField = document.getElementById('verifierSignatureName');
+  if (sigField && anyStarted && !sigField.value && verifierOwnName) {
+    sigField.value = verifierOwnName;
+  }
 }
 
 function buildMode(mode) {
@@ -900,6 +915,11 @@ confirmMatchBtn.addEventListener('click', async () => {
     resultArea.innerHTML = `<div class="result-warn">No candidate selected.</div>`;
     return;
   }
+  const verifierName = document.getElementById('verifierSignatureName').value.trim();
+  if (!verifierName) {
+    resultArea.innerHTML = `<div class="result-warn">Please type your own name above to sign as the verifier before confirming.</div>`;
+    return;
+  }
 
   resultArea.innerHTML = `<div class="sub">Saving photos and verification…</div>`;
   try {
@@ -919,6 +939,7 @@ confirmMatchBtn.addEventListener('click', async () => {
     let payload = {
       candidate_id: selectedCandidateId,
       supervisor_id: user.id,
+      supervisor_signature: verifierName,
       verified_in_person_at: new Date().toISOString(),
       signed_at: signedAt,
       first_day_of_employment: selectedCandidate ? selectedCandidate.start_date : null
