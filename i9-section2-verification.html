@@ -933,8 +933,19 @@ confirmMatchBtn.addEventListener('click', async () => {
     // Preserve the original signed_at if this candidate was already
     // verified once before (e.g. a correction) — only a genuinely new
     // record gets a fresh signing timestamp.
-    const { data: existingI9s2 } = await supabaseClient.from('i9_section2').select('signed_at').eq('candidate_id', selectedCandidateId).single();
+    const { data: existingI9s2 } = await supabaseClient.from('i9_section2').select('*').eq('candidate_id', selectedCandidateId).single();
     const signedAt = (existingI9s2 && existingI9s2.signed_at) ? existingI9s2.signed_at : new Date().toISOString();
+
+    // Archive the full pre-edit version before overwriting it, so it's
+    // always possible to prove what was actually verified on the original date.
+    if (existingI9s2) {
+      await supabaseClient.from('form_edit_history').insert({
+        table_name: 'i9_section2',
+        candidate_id: selectedCandidateId,
+        record_snapshot: existingI9s2,
+        archived_reason: 'correction before update'
+      });
+    }
 
     let payload = {
       candidate_id: selectedCandidateId,

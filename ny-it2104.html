@@ -248,8 +248,19 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
 
   resultArea.innerHTML = '<div class="sub">Saving…</div>';
   try {
-    const { data: existingRow } = await supabaseClient.from('ny_it2104').select('signed_at').eq('candidate_id', selectedCandidateId).single();
+    const { data: existingRow } = await supabaseClient.from('ny_it2104').select('*').eq('candidate_id', selectedCandidateId).single();
     const signedAt = (existingRow && existingRow.signed_at) ? existingRow.signed_at : new Date().toISOString();
+
+    // Archive the full pre-edit version before overwriting it, so it's
+    // always possible to prove what was actually signed on the original date.
+    if (existingRow) {
+      await supabaseClient.from('form_edit_history').insert({
+        table_name: 'ny_it2104',
+        candidate_id: selectedCandidateId,
+        record_snapshot: existingRow,
+        archived_reason: 'correction before update'
+      });
+    }
 
     const { error } = await supabaseClient.from('ny_it2104').upsert({
       candidate_id: selectedCandidateId,

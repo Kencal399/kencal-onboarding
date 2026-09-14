@@ -566,6 +566,21 @@ function buildForm() {
         // signature/consent/date, only the field values themselves change.
         candidateId = reopenCandidateId;
 
+        // Archive the full pre-edit versions before overwriting them, so
+        // it's always possible to prove what was actually signed originally.
+        if (reopenExistingData.candidate) {
+          await supabaseClient.from('form_edit_history').insert({
+            table_name: 'candidates', candidate_id: candidateId,
+            record_snapshot: reopenExistingData.candidate, archived_reason: 'correction before update'
+          });
+        }
+        if (reopenExistingData.application) {
+          await supabaseClient.from('form_edit_history').insert({
+            table_name: 'applications', candidate_id: candidateId,
+            record_snapshot: reopenExistingData.application, archived_reason: 'correction before update'
+          });
+        }
+
         const { error: candErr } = await supabaseClient.from('candidates').update({
           first_name: firstName,
           middle_name: val('middle_name'),
@@ -604,6 +619,12 @@ function buildForm() {
 
         // Replace employment history wholesale — simplest correct way to
         // handle a variable number of entries changing.
+        if (reopenExistingData.employmentHistory && reopenExistingData.employmentHistory.length > 0) {
+          await supabaseClient.from('form_edit_history').insert({
+            table_name: 'employment_history', candidate_id: candidateId,
+            record_snapshot: reopenExistingData.employmentHistory, archived_reason: 'correction before update'
+          });
+        }
         await supabaseClient.from('employment_history').delete().eq('candidate_id', candidateId);
 
       } else {
