@@ -214,7 +214,7 @@ function downloadBytes(bytes, filename) {
 
 async function fillI9(candidate, i9s1, i9s2, employer, candidateId) {
   const bytes = await fetchTemplateBytes('i9-blank.pdf');
-  const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+  const pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
   const form = pdfDoc.getForm();
 
   if (i9s1) {
@@ -290,7 +290,7 @@ async function fillI9(candidate, i9s1, i9s2, employer, candidateId) {
 
 async function fillW4(candidate, w4, i9s1, application, employer) {
   const bytes = await fetchTemplateBytes('w4-blank.pdf');
-  const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+  const pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
   const form = pdfDoc.getForm();
   const P = 'topmostSubform[0].Page1[0].';
 
@@ -344,7 +344,7 @@ async function fillW4(candidate, w4, i9s1, application, employer) {
 
 async function fillIT2104(candidate, it2104, i9s1, application, employer) {
   const bytes = await fetchTemplateBytes('ny-it2104-blank.pdf');
-  const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+  const pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
   const form = pdfDoc.getForm();
 
   const ssn = (i9s1 && i9s1.ssn) || (application && application.ssn) || '';
@@ -389,7 +389,7 @@ async function fillIT2104(candidate, it2104, i9s1, application, employer) {
 
 async function fillCTW4(candidate, ctw4, i9s1, application, employer) {
   const bytes = await fetchTemplateBytes('ct-w4-blank.pdf');
-  const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+  const pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
   const form = pdfDoc.getForm();
 
   const ssn = (i9s1 && i9s1.ssn) || (application && application.ssn) || '';
@@ -427,7 +427,7 @@ async function fillCTW4(candidate, ctw4, i9s1, application, employer) {
 
 async function fillNJW4(candidate, njw4, i9s1, application, employer) {
   const bytes = await fetchTemplateBytes('nj-w4-blank.pdf');
-  const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+  const pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
   const form = pdfDoc.getForm();
 
   const ssn = (i9s1 && i9s1.ssn) || (application && application.ssn) || '';
