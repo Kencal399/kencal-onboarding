@@ -19,6 +19,10 @@
   .field { margin-bottom:12px; }
   .field label { display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:4px; }
   .field input { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; }
+  .field input[type="date"] {
+    background:#fff; min-height:44px; font-size:16px; color:var(--ink);
+    -webkit-appearance:none; appearance:none;
+  }
   .lang-gate { text-align:center; padding:30px 20px; }
   .lang-gate h1 { font-size:18px; color:var(--navy); margin-bottom:8px; }
   .gate-btn { display:block; width:100%; max-width:320px; margin:0 auto 10px; padding:14px; border:2px solid var(--navy); border-radius:10px; background:#fff; color:var(--navy); font-size:15px; font-weight:600; cursor:pointer; }
@@ -303,7 +307,10 @@ function renderActionArea(candidate) {
     area.innerHTML = `
       <p class="sub" style="color:var(--ok); font-weight:600; margin-bottom:10px;">✓ Forms complete and documents verified.</p>
       <p class="sub" style="margin-bottom:6px;">Once a real start date is confirmed:</p>
-      <div class="field"><label>Confirmed start date</label><input type="date" id="startDateInput"></div>
+      <div class="field" style="background:#f7f5ee; border:1px solid var(--gold); border-radius:8px; padding:10px 12px;">
+        <label>Confirmed start date <span style="font-weight:400; color:var(--ink-soft);">(tap the box below)</span></label>
+        <input type="date" id="startDateInput">
+      </div>
       <button class="btn btn-hire" id="hireBtn">Confirm Hire — set date on all forms</button>
     `;
     document.getElementById('hireBtn').addEventListener('click', () => confirmHire(candidate.id));
