@@ -213,7 +213,15 @@ async function selectCandidate(candidateId) {
     (i9s2 && i9s2.list_c_expiration_date) ||
     ''
   );
-  const i9Type = (i9 && i9.citizenship_status) ? CITIZENSHIP_LABELS[i9.citizenship_status] || i9.citizenship_status : '';
+  // Show the exact document(s) examined in Section 2. Titles saved after the
+  // Spanish translation went in look like "U.S. Passport / Pasaporte de EE. UU.",
+  // so keep only the English half for WinTeam.
+  const englishOnly = (t) => String(t || '').split(' / ')[0].trim();
+  const docA = englishOnly(i9s2 && i9s2.document_title);
+  const docC = englishOnly(i9s2 && i9s2.list_c_document_title);
+  const documentsPresented = [docA, docC].filter(Boolean).join(' + ');
+  const i9Type = documentsPresented ||
+    ((i9 && i9.citizenship_status) ? CITIZENSHIP_LABELS[i9.citizenship_status] || i9.citizenship_status : '');
   const maritalStatus = (w4 && w4.filing_status) ? FILING_STATUS_LABELS[w4.filing_status] || w4.filing_status : '';
   const dependentsCount = w4 ? (Number(w4.qualifying_children_count || 0) + Number(w4.other_dependents_count || 0)) : null;
   const dependentsDisplay = dependentsCount === null ? '' : String(dependentsCount);
